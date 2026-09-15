@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Diwan",
+    "slug": "diwan-private-urdu-poetry",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.diwan.privatepoetry"
+    },
+    "android": {
+      "package": "com.diwan.privatepoetry",
+      "adaptiveIcon": {
+        "backgroundColor": "#FDFBF7"
+      }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Diwan uses your photo library only when the author selects a book cover or profile image.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b6e213d7-e685-44ef-b141-45a829b4b3ad"
+      }
+    },
+    "owner": "hassnain512"
+  }
+}

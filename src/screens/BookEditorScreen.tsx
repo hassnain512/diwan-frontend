@@ -1,0 +1,34 @@
+﻿import React, { useState } from 'react';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Book, BookStatus } from '../types';
+import { useApp } from '../store/AppContext';
+import { BookCover } from '../components/BookCover';
+import { Button, Card, Field, Urdu } from '../components/Ui';
+import { fontFamily, getPalette } from '../theme/theme';
+
+const themes: NonNullable<Book['coverTheme']>[] = ['leather-gold','maroon-gold','emerald-gilded','sapphire-silver','noir-cream','terracotta-copper'];
+const ornaments: NonNullable<Book['coverOrnament']>[] = ['floral','arabesque','calligraphy','geometric'];
+
+export function BookEditorScreen({ book, onClose }: { book?: Book; onClose: () => void }) {
+  const app = useApp();
+  const palette = getPalette(app.readingTheme);
+  const [title, setTitle] = useState(book?.title || ''); const [status, setStatus] = useState<BookStatus>(book?.status || 'draft');
+  const [coverType, setCoverType] = useState<Book['coverType']>(book?.coverType || 'generated'); const [coverUrl, setCoverUrl] = useState(book?.coverUrl || '');
+  const [theme, setTheme] = useState<NonNullable<Book['coverTheme']>>(book?.coverTheme || 'leather-gold'); const [ornament, setOrnament] = useState<NonNullable<Book['coverOrnament']>>(book?.coverOrnament || 'arabesque'); const [saving, setSaving] = useState(false);
+  const preview: Book = { id: book?.id || 'preview', title: title || 'New Book', coverType, coverUrl, coverTheme: theme, coverOrnament: ornament, status, orderIndex: book?.orderIndex || 0, createdAt: book?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+  const pick = async () => { const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [2,3], quality: .9 }); if (!res.canceled) { setCoverUrl(res.assets[0].uri); setCoverType('custom'); } };
+  const save = async () => { if (!title.trim()) return Alert.alert('Book title', 'Enter a title.'); setSaving(true); try { await app.saveBook({ ...book, title: title.trim(), status, coverType, coverUrl, coverTheme: theme, coverOrnament: ornament }); onClose(); } catch (e: any) { Alert.alert('Unable to save', e.message); } finally { setSaving(false); } };
+  return <ScrollView style={[styles.root,{backgroundColor:palette.bg}]} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}><View style={[styles.header,{borderBottomColor:palette.border}]}><Button compact variant="ghost" title="Cancel" onPress={onClose} /><View style={styles.headerTitle}><Urdu style={styles.heading}>{book ? 'Edit Book' : 'New Book'}</Urdu></View><Button compact title={saving ? '…' : 'Save'} onPress={save} disabled={saving} /></View>
+    <View style={[styles.preview,{backgroundColor:palette.surface2,borderColor:palette.border}]}><View style={{ width: 150 }}><BookCover book={preview} authorName={app.author?.authorNameUrdu} /></View></View>
+    <Card style={[styles.form,{borderColor:palette.border}]}><Field label="Book title" rtl style={{fontFamily}} value={title} onChangeText={setTitle} placeholder="Enter title" />
+      <Urdu style={[styles.label,{color:palette.muted}]}>Status</Urdu><Segment options={[['draft','Draft'],['coming_soon','Coming soon'],['published','Published']]} value={status} onChange={v => setStatus(v as BookStatus)} />
+      <Urdu style={[styles.label,{color:palette.muted}]}>Cover</Urdu><Segment options={[['generated','Designed'],['custom','Custom image']]} value={coverType} onChange={v => setCoverType(v as any)} />
+      {coverType === 'custom' ? <><Button variant="secondary" icon="image-outline" title="Choose image" onPress={pick} />{coverUrl ? <Image source={{ uri: coverUrl }} style={[styles.image,{borderColor:palette.border}]} /> : null}</> : <><Urdu style={[styles.label,{color:palette.muted}]}>Style</Urdu><View style={styles.wrap}>{themes.map(t => <Pressable key={t} onPress={() => setTheme(t)} style={({pressed})=>[styles.pill,{borderColor:palette.border,backgroundColor:palette.surface},theme===t&&{backgroundColor:palette.accent,borderColor:palette.accent},pressed&&styles.pressed]}><Urdu style={[styles.pillText,{color:theme===t?palette.bg:palette.accent}]}>{t.replace(/-/g,' ')}</Urdu></Pressable>)}</View><Urdu style={[styles.label,{color:palette.muted}]}>Ornament</Urdu><View style={styles.wrap}>{ornaments.map(o => <Pressable key={o} onPress={() => setOrnament(o)} style={({pressed})=>[styles.pill,{borderColor:palette.border,backgroundColor:palette.surface},ornament===o&&{backgroundColor:palette.accent,borderColor:palette.accent},pressed&&styles.pressed]}><Urdu style={[styles.pillText,{color:ornament===o?palette.bg:palette.accent}]}>{o}</Urdu></Pressable>)}</View></>}
+      {book ? <Button variant="danger" icon="trash-outline" title="Delete book" onPress={() => Alert.alert('Delete book?', `“${book.title}” and its poems will be deleted.`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: async () => { await app.removeBook(book.id); onClose(); } }])} /> : null}
+    </Card></ScrollView>;
+}
+function Segment({ options, value, onChange }: { options: [string,string][]; value: string; onChange: (v:string)=>void }) { const app=useApp();const palette=getPalette(app.readingTheme);return <View style={[styles.segment,{borderColor:palette.border,backgroundColor:palette.surface2}]}>{options.map(([v,l]) => <Pressable key={v} onPress={() => onChange(v)} style={({pressed})=>[styles.seg,value===v&&{backgroundColor:palette.accent},pressed&&styles.pressed]}><Urdu style={[styles.pillText,{color:value===v?palette.bg:palette.accent}]}>{l}</Urdu></Pressable>)}</View>; }
+const styles = StyleSheet.create({ root: { flex: 1 }, content: { width: '100%', maxWidth: 760, alignSelf: 'center', padding: 14, paddingBottom: 44 }, header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',borderBottomWidth:StyleSheet.hairlineWidth,paddingBottom:10,gap:8 },headerTitle:{alignItems:'center',flex:1},kicker:{fontSize:8,lineHeight:15,letterSpacing:.6}, heading: { fontSize: 21,lineHeight:30, fontWeight: '800' }, preview: { alignItems: 'center', marginVertical: 16,borderWidth:1,borderRadius:22,paddingVertical:18 }, form: { gap: 12 }, label: { fontSize: 12,lineHeight:18 }, segment: { flexDirection: 'row', gap: 5, padding: 4, borderWidth: 1, borderRadius: 14 }, seg: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }, wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, pill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 7,minHeight:44,justifyContent:'center' }, pillText: { fontSize: 10,lineHeight:16, textAlign: 'center' },pressed:{opacity:.72,transform:[{scale:.98}]}, image: { width: '100%', height: 190, borderRadius: 16,borderWidth:1 } });
+
+

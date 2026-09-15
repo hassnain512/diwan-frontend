@@ -1,0 +1,36 @@
+{
+  "name": "diwan-private-urdu-poetry-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "typecheck": "tsc --noEmit",
+    "doctor": "npx expo-doctor@latest"
+  },
+  "dependencies": {
+    "@expo-google-fonts/noto-nastaliq-urdu": "^0.4.2",
+    "@expo/vector-icons": "latest",
+    "expo": "~57.0.22",
+    "expo-document-picker": "~57.0.2",
+    "expo-file-system": "~57.0.7",
+    "expo-font": "~57.0.4",
+    "expo-image-picker": "~57.0.17",
+    "expo-network": "~57.0.2",
+    "expo-print": "~57.0.2",
+    "expo-screen-capture": "~57.0.3",
+    "expo-secure-store": "~57.0.4",
+    "expo-sharing": "~57.0.19",
+    "expo-sqlite": "~57.0.3",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "typescript": "~6.0.3"
+  }
+}

@@ -1,0 +1,12 @@
+﻿project_id = "diwan-private-urdu-poetry"
+
+[db.seed]
+enabled = true
+sql_paths = ['./seed.sql']
+
+[api]
+enabled = true
+
+[storage]
+enabled = true
+
