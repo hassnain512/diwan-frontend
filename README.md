@@ -93,3 +93,4 @@ src/
 ## No WebView
 
 There is no `react-native-webview` dependency and no web page is embedded. All visible screens use React Native primitives (`View`, `Text`, `TextInput`, `Image`, `Pressable`, `FlatList`, `ScrollView`).
+"# diwan-frontend" 
