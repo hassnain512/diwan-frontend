@@ -9,7 +9,7 @@ import { Urdu } from '../components/Ui';
 import { fontFamilies, getPalette } from '../theme/theme';
 
 function ReaderProtection() {
-  ScreenCapture.usePreventScreenCapture('diwan-poetry-reader');
+  ScreenCapture.usePreventScreenCapture('raza-poetry-reader');
   return null;
 }
 
@@ -50,7 +50,7 @@ export function ReadingScreen({ book, writing, onBack, onSelectWriting, onFont }
         <View style={[styles.corner, styles.cornerBR, { borderColor: palette.gold }]} />
         <View style={[styles.corner, styles.cornerBL, { borderColor: palette.gold }]} />
 
-        {!isAdmin ? <Text style={[styles.watermark, { color: palette.muted }]}>{app.session?.username || 'reader'}  •  DIWAN  •  {app.session?.username || 'reader'}</Text> : <View style={{ height: 8 }} />}
+        {!isAdmin ? <Text style={[styles.watermark, { color: palette.muted }]}>{app.session?.username || 'reader'}  •  RAZA  •  {app.session?.username || 'reader'}</Text> : <View style={{ height: 8 }} />}
         <Urdu style={[styles.topOrnament, { color: palette.gold }]}>❦  ✦  ❦</Urdu>
         <Urdu style={[styles.title, { color: palette.accentStrong }]}>{writing.title}</Urdu>
         <Urdu style={[styles.author, { color: palette.muted }]}>{app.author?.authorName}</Urdu>

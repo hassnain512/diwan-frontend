@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Alert, Image, Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -110,12 +110,9 @@ function AppHeader({ onFont, onAuthor, onTheme, onLogout }: { onFont: () => void
   return <View style={[styles.header, { backgroundColor: palette.surface, borderColor: palette.border, shadowColor: palette.shadow }]}>
     <View style={styles.headerInner}>
       <Pressable accessibilityRole="button" accessibilityLabel="Author profile" onPress={onAuthor} style={({ pressed }) => [styles.identity, pressed && styles.pressed]}>
-        <View style={[styles.logo, { backgroundColor: palette.accentSoft, borderColor: palette.borderStrong }]}>
-          <Urdu numberOfLines={1} style={[styles.logoText, { color: palette.accentStrong }]}>DIWAN</Urdu>
-        </View>
         <View style={styles.identityCopy}>
           <View style={styles.titleRow}>
-            <Urdu numberOfLines={1} style={[styles.appTitle, { color: palette.text }]}>DIWAN</Urdu>
+            <Image accessible accessibilityLabel="Raza" source={require('./assets/Raza  Logo.png')} resizeMode="contain" style={styles.headerLogo} />
             {!compact ? <View style={[styles.role, { backgroundColor: palette.accentSoft, borderColor: palette.border }]}>
               <Urdu style={[styles.roleText, { color: palette.accentStrong }]}>{role}</Urdu>
             </View> : null}
@@ -200,20 +197,10 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: 13
   },
-  logo: {
-    width: 36,
-    height: 36,
-    flexShrink: 0,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3
-  },
-  logoText: { fontSize: 10, lineHeight: 23, fontWeight: '700', textAlign: 'center' },
+
   identityCopy: { minWidth: 0, flex: 1, alignItems: 'flex-start', justifyContent: 'center' },
   titleRow: { maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: 5 },
-  appTitle: { minWidth: 0, flexShrink: 1, fontSize: 15, lineHeight: 25, fontWeight: '700' },
+  headerLogo: { width: 42, height: 42, flexShrink: 0 },
   role: { flexShrink: 0, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999 },
   roleText: { fontSize: 8, lineHeight: 16, fontWeight: '600' },
   online: { maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -2 },

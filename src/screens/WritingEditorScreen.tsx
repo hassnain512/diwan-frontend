@@ -1,30 +1,318 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Writing, WritingStatus } from '../types';
-import { useApp } from '../store/AppContext';
-import { Button, Card, Field, Urdu } from '../components/Ui';
-import { fontFamily, getPalette } from '../theme/theme';
-import { PoetryHtml } from '../components/PoetryHtml';
-import { htmlToPlainText, plainTextToHtml, wrapSelection } from '../utils/html';
+﻿import React, { useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { Writing, WritingStatus } from "../types";
+import { useApp } from "../store/AppContext";
+import { Button, Card, Field, Urdu } from "../components/Ui";
+import { fontFamily, getPalette } from "../theme/theme";
+import { PoetryHtml } from "../components/PoetryHtml";
+import { htmlToPlainText, plainTextToHtml, wrapSelection } from "../utils/html";
 
-export function WritingEditorScreen({ bookId, writing, onClose }: { bookId: string; writing?: Writing; onClose: () => void }) {
-  const app = useApp(); const [current, setCurrent] = useState<Writing | undefined>(writing); const [title, setTitle] = useState(writing?.title || '');
+export function WritingEditorScreen({
+  bookId,
+  writing,
+  onClose,
+}: {
+  bookId: string;
+  writing?: Writing;
+  onClose: () => void;
+}) {
+  const app = useApp();
+  const [current, setCurrent] = useState<Writing | undefined>(writing);
+  const [title, setTitle] = useState(writing?.title || "");
   const palette = getPalette(app.readingTheme);
-  const [source, setSource] = useState(writing?.content || '<div dir="rtl"><p></p></div>'); const [status, setStatus] = useState<WritingStatus>(writing?.status || 'draft'); const [preview, setPreview] = useState(false); const [saving, setSaving] = useState(false); const [selection, setSelection] = useState({ start: source.length - 10, end: source.length - 10 }); const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const save = async (silent = false) => { if (!title.trim() && !htmlToPlainText(source).trim()) return; setSaving(true); try { const result = await app.saveWriting({ ...current, bookId, title: title.trim() || 'Untitled', content: source, status }); setCurrent(result); if (!silent) onClose(); } catch (e: any) { if (!silent) Alert.alert('Unable to save', e.message); } finally { setSaving(false); } };
-  useEffect(() => { if (status !== 'draft' || (!title.trim() && !htmlToPlainText(source).trim())) return; if (autosaveTimer.current) clearTimeout(autosaveTimer.current); autosaveTimer.current = setTimeout(() => save(true), 1400); return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); }; }, [title, source, status]);
-  const format = (open: string, close: string) => { const r = wrapSelection(source, selection.start, selection.end, open, close); setSource(r.text); setSelection(r.selection); };
-  const insertDivider = () => { const pos = selection.end; setSource(source.slice(0,pos) + '<div class="poetry-divider">❦ ❦ ❦</div>' + source.slice(pos)); };
-  return <ScrollView style={[styles.root,{backgroundColor:palette.bg}]} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}><View style={[styles.header,{borderBottomColor:palette.border}]}><Button compact variant="ghost" title="Close" onPress={onClose} /><View style={styles.headerTitle}><Urdu style={styles.heading}>{writing ? 'Edit Poem' : 'New Poem'}</Urdu><Urdu style={[styles.saved,{color:palette.muted}]}>{saving ? 'Saving…' : status === 'draft' ? 'Autosaved' : 'Published'}</Urdu></View><Button compact title="Save" onPress={() => save(false)} disabled={saving} /></View>
-    <Card style={[styles.form,{borderColor:palette.border}]}><Field label="Title" rtl style={{fontFamily}} value={title} onChangeText={setTitle} placeholder="Poem title" />
-      <View style={styles.statusRow}>{(['draft','published'] as WritingStatus[]).map(s => <Pressable key={s} onPress={() => setStatus(s)} style={({pressed})=>[styles.status,{borderColor:palette.border,backgroundColor:palette.surface2},status===s&&{backgroundColor:palette.accent,borderColor:palette.accent},pressed&&styles.pressed]}><Urdu style={[styles.statusText,{color:status===s?palette.bg:palette.accent}]}>{s === 'draft' ? 'Draft' : 'Publish'}</Urdu></Pressable>)}</View>
-      <View style={[styles.toolbar,{borderColor:palette.border,backgroundColor:palette.surface2}]}><Tool label="B" onPress={() => format('<strong>','</strong>')} /><Tool label="I" onPress={() => format('<em>','</em>')} /><Tool label="U" onPress={() => format('<u>','</u>')} /><Tool label="❝" onPress={() => format('<blockquote>','</blockquote>')} /><Tool label="❦" onPress={insertDivider} /><Tool label="RTL" onPress={() => format('<div dir="rtl">','</div>')} /></View>
-      <View style={styles.switch}><Button compact variant={preview ? 'secondary' : 'primary'} title="Edit" onPress={() => setPreview(false)} /><Button compact variant={preview ? 'primary' : 'secondary'} title="Preview" onPress={() => setPreview(true)} /></View>
-      {preview ? <View style={[styles.preview,{backgroundColor:palette.input,borderColor:palette.border}]}><PoetryHtml html={source} color={palette.text} fontSize={20} lineHeight={44} /></View> : <TextInput multiline value={source} onChangeText={setSource} onSelectionChange={e => setSelection(e.nativeEvent.selection)} selection={selection} textAlign="right" placeholderTextColor={palette.muted} style={[styles.editor,{backgroundColor:palette.input,borderColor:palette.border,color:palette.text,fontFamily}]} autoCapitalize="none" autoCorrect={false} />}
-      <Button variant="secondary" title="Clean formatting" onPress={() => setSource(plainTextToHtml(htmlToPlainText(source)))} />
-    </Card></ScrollView>;
+  const [source, setSource] = useState(
+    writing?.content || '<div dir="rtl"><p></p></div>',
+  );
+  const [status, setStatus] = useState<WritingStatus>(
+    writing?.status || "draft",
+  );
+  const [preview, setPreview] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [selection, setSelection] = useState({
+    start: source.length - 10,
+    end: source.length - 10,
+  });
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const save = async (silent = false) => {
+    if (!title.trim() && !htmlToPlainText(source).trim()) return;
+    setSaving(true);
+    try {
+      const result = await app.saveWriting({
+        ...current,
+        bookId,
+        title: title.trim() || "Untitled",
+        content: source,
+        status,
+      });
+      setCurrent(result);
+      if (!silent) onClose();
+    } catch (e: any) {
+      if (!silent) Alert.alert("Unable to save", e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+  useEffect(() => {
+    if (
+      status !== "draft" ||
+      (!title.trim() && !htmlToPlainText(source).trim())
+    )
+      return;
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => save(true), 1400);
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    };
+  }, [title, source, status]);
+  const format = (open: string, close: string) => {
+    const r = wrapSelection(
+      source,
+      selection.start,
+      selection.end,
+      open,
+      close,
+    );
+    setSource(r.text);
+    setSelection(r.selection);
+  };
+  const insertDivider = () => {
+    const pos = selection.end;
+    setSource(
+      source.slice(0, pos) +
+        '<div class="poetry-divider">❦ ❦ ❦</div>' +
+        source.slice(pos),
+    );
+  };
+  return (
+    <ScrollView
+      style={[styles.root, { backgroundColor: palette.bg }]}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Button compact variant="ghost" title="Close" onPress={onClose} />
+        <View style={styles.headerTitle}>
+          <Urdu style={styles.heading}>
+            {writing ? "Edit Poem" : "New Poem"}
+          </Urdu>
+          <Urdu style={[styles.saved, { color: palette.muted }]}>
+            {saving
+              ? "Saving…"
+              : status === "draft"
+                ? "Autosaved"
+                : "Published"}
+          </Urdu>
+        </View>
+        <Button
+          compact
+          title="Save"
+          onPress={() => save(false)}
+          disabled={saving}
+        />
+      </View>
+      <Card style={[styles.form, { borderColor: palette.border }]}>
+        <Field
+          label="Title"
+          rtl
+          style={{ fontFamily }}
+          value={title}
+          onChangeText={setTitle}
+          placeholder="Poem title"
+        />
+        <View style={styles.statusRow}>
+          {(["draft", "published"] as WritingStatus[]).map((s) => (
+            <Pressable
+              key={s}
+              onPress={() => setStatus(s)}
+              style={({ pressed }) => [
+                styles.status,
+                {
+                  borderColor: palette.border,
+                  backgroundColor: palette.surface2,
+                },
+                status === s && {
+                  backgroundColor: palette.accent,
+                  borderColor: palette.accent,
+                },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Urdu
+                style={[
+                  styles.statusText,
+                  { color: status === s ? palette.bg : palette.accent },
+                ]}
+              >
+                {s === "draft" ? "Draft" : "Publish"}
+              </Urdu>
+            </Pressable>
+          ))}
+        </View>
+        <View
+          style={[
+            styles.toolbar,
+            { borderColor: palette.border, backgroundColor: palette.surface2 },
+          ]}
+        >
+          <Tool label="B" onPress={() => format("<strong>", "</strong>")} />
+          <Tool label="I" onPress={() => format("<em>", "</em>")} />
+          <Tool label="U" onPress={() => format("<u>", "</u>")} />
+          <Tool
+            label="❝"
+            onPress={() => format("<blockquote>", "</blockquote>")}
+          />
+          <Tool label="❦" onPress={insertDivider} />
+          <Tool
+            label="RTL"
+            onPress={() => format('<div dir="rtl">', "</div>")}
+          />
+        </View>
+        <View style={styles.switch}>
+          <Button
+            compact
+            variant={preview ? "secondary" : "primary"}
+            title="Edit"
+            onPress={() => setPreview(false)}
+          />
+          <Button
+            compact
+            variant={preview ? "primary" : "secondary"}
+            title="Preview"
+            onPress={() => setPreview(true)}
+          />
+        </View>
+        {preview ? (
+          <View
+            style={[
+              styles.preview,
+              { backgroundColor: palette.input, borderColor: palette.border },
+            ]}
+          >
+            <PoetryHtml
+              html={source}
+              color={palette.text}
+              fontSize={20}
+              lineHeight={44}
+            />
+          </View>
+        ) : (
+          <TextInput
+            multiline
+            value={source}
+            onChangeText={setSource}
+            onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
+            selection={selection}
+            textAlign="right"
+            placeholderTextColor={palette.muted}
+            style={[
+              styles.editor,
+              {
+                backgroundColor: palette.input,
+                borderColor: palette.border,
+                color: palette.text,
+                fontFamily,
+              },
+            ]}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        )}
+        <Button
+          variant="secondary"
+          title="Clean formatting"
+          onPress={() => setSource(plainTextToHtml(htmlToPlainText(source)))}
+        />
+      </Card>
+    </ScrollView>
+  );
 }
-function Tool({ label, onPress }: { label: string; onPress: () => void }) { const app=useApp();const palette=getPalette(app.readingTheme);return <Pressable onPress={onPress} style={({pressed})=>[styles.tool,{backgroundColor:palette.input,borderColor:palette.border},pressed&&styles.pressed]}><Text style={[styles.toolText,{color:palette.accent}]}>{label}</Text></Pressable>; }
-const styles = StyleSheet.create({ root: { flex: 1 }, content: { width: '100%', maxWidth: 760, alignSelf: 'center', padding: 12, paddingBottom: 44 }, header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12,borderBottomWidth:StyleSheet.hairlineWidth,paddingBottom:10,gap:7 },headerTitle:{alignItems:'center',flex:1},kicker:{fontSize:8,lineHeight:15,letterSpacing:.6}, heading: { fontSize: 19,lineHeight:27, fontWeight: '800' }, saved: { fontSize: 8,lineHeight:14 }, form: { gap: 12 }, statusRow: { flexDirection: 'row', gap: 6 }, status: { flex: 1, minHeight: 44, borderWidth: 1, borderRadius: 11, alignItems: 'center', justifyContent: 'center' }, statusText: { fontWeight: '700',fontSize:11,lineHeight:16 }, toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, borderWidth: 1, borderRadius: 14, padding: 8 }, tool: { minWidth: 44, height: 44, borderRadius: 9, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, toolText: { fontWeight: '900' },pressed:{opacity:.7,transform:[{scale:.97}]}, switch: { flexDirection: 'row', gap: 7 }, editor: { minHeight: 350, borderWidth: 1, borderRadius: 15, padding: 16, fontSize: 15, lineHeight: 30, textAlignVertical: 'top', writingDirection: 'rtl' }, preview: { minHeight: 350, borderWidth: 1, borderRadius: 15, padding: 20 }, help: { fontSize: 10, lineHeight: 20,textAlign:'right' } });
-
-
+function Tool({ label, onPress }: { label: string; onPress: () => void }) {
+  const app = useApp();
+  const palette = getPalette(app.readingTheme);
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.tool,
+        { backgroundColor: palette.input, borderColor: palette.border },
+        pressed && styles.pressed,
+      ]}
+    >
+      <Text style={[styles.toolText, { color: palette.accent }]}>{label}</Text>
+    </Pressable>
+  );
+}
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  content: {
+    width: "100%",
+    maxWidth: 760,
+    alignSelf: "center",
+    padding: 12,
+    paddingBottom: 44,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingBottom: 10,
+    gap: 7,
+  },
+  headerTitle: { alignItems: "center", flex: 1 },
+  kicker: { fontSize: 8, lineHeight: 15, letterSpacing: 0.6 },
+  heading: { fontSize: 19, lineHeight: 27, fontWeight: "800" },
+  saved: { fontSize: 8, lineHeight: 14 },
+  form: { gap: 12 },
+  statusRow: { flexDirection: "row", gap: 6 },
+  status: {
+    flex: 1,
+    minHeight: 44,
+    borderWidth: 1,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statusText: { fontWeight: "700", fontSize: 11, lineHeight: 16 },
+  toolbar: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 8,
+  },
+  tool: {
+    minWidth: 44,
+    height: 44,
+    borderRadius: 9,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toolText: { fontWeight: "900" },
+  pressed: { opacity: 0.7, transform: [{ scale: 0.97 }] },
+  switch: { flexDirection: "row", gap: 7 },
+  editor: {
+    minHeight: 350,
+    borderWidth: 1,
+    borderRadius: 15,
+    padding: 16,
+    fontSize: 15,
+    lineHeight: 30,
+    textAlignVertical: "top",
+    writingDirection: "rtl",
+  },
+  preview: { minHeight: 350, borderWidth: 1, borderRadius: 15, padding: 20 },
+  help: { fontSize: 10, lineHeight: 20, textAlign: "right" },
+});

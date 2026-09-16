@@ -82,8 +82,8 @@ export function LibraryScreen({ onOpenBook, onOpenWriting, onAddBook, onEditBook
       </View>
       <Search value={query} onChange={setQuery} />
       <View style={styles.filterRow}>
-        <View style={styles.filters}>{filters.map(item => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: filter === item }} onPress={() => setFilter(item)} style={[styles.filter, { backgroundColor: palette.surface, borderColor: palette.border }, filter === item && { backgroundColor: palette.accent, borderColor: palette.accent }]}>
-          <Urdu style={[styles.filterText, { color: filter === item ? onAccent : palette.muted }]}>{filterLabels[item]}</Urdu>
+        <View style={styles.filters}>{filters.map(item => <Pressable key={item} accessibilityRole="tab" accessibilityLabel={filterLabels[item]} accessibilityState={{ selected: filter === item }} onPress={() => setFilter(item)} style={({ pressed }) => [styles.filter, { backgroundColor: palette.surface, borderColor: palette.border }, filter === item && { backgroundColor: palette.accent, borderColor: palette.accent }, pressed && styles.pressed]}>
+          <Urdu numberOfLines={1} style={[styles.filterText, { color: filter === item ? onAccent : palette.muted }]}>{filterLabels[item]}</Urdu>
         </Pressable>)}</View>
       </View>
       <View style={styles.sectionHead}>
@@ -139,9 +139,9 @@ const styles = StyleSheet.create({
   heroName: { fontSize: 10, lineHeight: 21, marginTop: -2 },
   heroRule: { position: 'absolute', right: 0, top: 19, bottom: 19, width: 2, borderRadius: 2 },
   filterRow: { marginVertical: 14 },
-  filters: { flexDirection: 'row', gap: 7, flexWrap: 'wrap' },
-  filter: { minHeight: 44, paddingHorizontal: 11, paddingVertical: 3, borderRadius: 999, borderWidth: 1, justifyContent: 'center' },
-  filterText: { fontSize: 10, lineHeight: 21, fontWeight: '600' },
+  filters: { flexDirection: 'row', alignItems: 'stretch', gap: 7 },
+  filter: { flex: 1, minWidth: 0, minHeight: 44, paddingHorizontal: 5, paddingVertical: 3, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  filterText: { flexShrink: 1, fontSize: 11, lineHeight: 18, fontWeight: '700', textAlign: 'center' },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2, marginBottom: 13 },
   sectionText: { alignItems: 'flex-start' },
   sectionTitle: { fontSize: 20, lineHeight: 35, fontWeight: '700' },

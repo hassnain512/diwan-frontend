@@ -37,10 +37,10 @@ export function PdfStudioScreen({ book, onClose }: { book?: Book; onClose: () =>
           return '<section><h1>' + esc(selectedBook.title) + '</h1>' + articles + '</section>';
         })
         .join('');
-      const html = '<html dir="rtl"><head><meta charset="utf-8"><style>body{font-family:serif;background:#fffaf1;color:#2d2926;padding:36px;direction:rtl}h1,h2{text-align:center}h1{font-size:32px;margin:30px 0}h2{font-size:22px;margin-top:36px}.poem{text-align:center;font-size:19px;line-height:2.3;white-space:normal}article{page-break-inside:avoid;margin-bottom:40px}section{page-break-after:always}</style></head><body><div style="text-align:center"><h1>DIWAN</h1><p>' + esc(app.author?.authorName || '') + '</p></div>' + sections + '</body></html>';
+      const html = '<html dir="rtl"><head><meta charset="utf-8"><style>body{font-family:serif;background:#fffaf1;color:#2d2926;padding:36px;direction:rtl}h1,h2{text-align:center}h1{font-size:32px;margin:30px 0}h2{font-size:22px;margin-top:36px}.poem{text-align:center;font-size:19px;line-height:2.3;white-space:normal}article{page-break-inside:avoid;margin-bottom:40px}section{page-break-after:always}</style></head><body><div style="text-align:center"><h1>Kalam E Raza</h1><p>' + esc(app.author?.authorName || '') + '</p></div>' + sections + '</body></html>';
       const file = await Print.printToFileAsync({ html });
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: 'Diwan PDF' });
+        await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: 'Kalam e Raza PDF' });
       } else {
         Alert.alert('PDF', file.uri);
       }

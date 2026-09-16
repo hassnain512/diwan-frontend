@@ -27,8 +27,10 @@ export function Urdu({ children, style, numberOfLines }: { children: React.React
   let rawText = '';
   React.Children.forEach(children, child => { if (typeof child === 'string' || typeof child === 'number') rawText += String(child); });
   const isUrdu = /[\u0600-\u06FF\u0750-\u077F]/.test(rawText);
-  const family = isUrdu ? (requestedFamily || nastaliqForWeight(requestedWeight)) : undefined;
-  return <Text numberOfLines={numberOfLines} style={[styles.urdu, { color: palette.text }, safeStyle, { fontFamily: family, writingDirection: isUrdu ? 'rtl' : 'ltr' }]}>{children}</Text>;
+  const typography = isUrdu
+    ? { fontFamily: requestedFamily || nastaliqForWeight(requestedWeight), writingDirection: 'rtl' as const }
+    : { fontFamily: requestedFamily, fontWeight: requestedWeight, writingDirection: 'ltr' as const };
+  return <Text numberOfLines={numberOfLines} style={[styles.urdu, { color: palette.text }, safeStyle, typography]}>{children}</Text>;
 }
 
 export function Label({ children, style }: { children: React.ReactNode; style?: any }) {
@@ -85,7 +87,7 @@ export function EmptyState({ icon = 'folder-open-outline', title, message, actio
   return <Card style={styles.emptyCard}><View style={[styles.emptyIcon, { backgroundColor: palette.accentSoft }]}><Ionicons name={icon} size={26} color={palette.accentStrong} /></View><Urdu style={styles.emptyTitle}>{title}</Urdu>{message ? <Label style={[styles.emptyMessage, { color: palette.muted }]}>{message}</Label> : null}{action}</Card>;
 }
 
-export function Loading({ label = 'Loading Diwan…' }: { label?: string }) {
+export function Loading({ label = 'Loading Raza…' }: { label?: string }) {
   const palette = getPalette(useApp().readingTheme);
   return <SafeAreaView style={[styles.center, { backgroundColor: palette.bg }]}><View style={[styles.loadingMark, { backgroundColor: palette.accentSoft }]}><ActivityIndicator color={palette.accentStrong} /></View><Urdu style={{ color: palette.muted, marginTop: 10, lineHeight: 24 }}>{label}</Urdu></SafeAreaView>;
 }
@@ -95,7 +97,7 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', paddingTop: 16, paddingBottom: 28 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingMark: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  urdu: { writingDirection: 'rtl', includeFontPadding: true }, label: { fontSize: 12 },
+  urdu: { includeFontPadding: true }, label: { fontSize: 12 },
   card: { borderWidth: 1, borderRadius: 22, padding: 18, shadowOffset: { width: 0, height: 8 }, shadowOpacity: .07, shadowRadius: 20, elevation: 2 },
   button: { minHeight: 50, borderRadius: 15, paddingHorizontal: 17, paddingVertical: 5, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, borderWidth: 1 },
   primaryShadow: { shadowColor: '#111', shadowOffset: { width: 0, height: 4 }, shadowOpacity: .12, shadowRadius: 8, elevation: 2 },

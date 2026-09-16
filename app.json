@@ -1,9 +1,10 @@
 {
   "expo": {
-    "name": "Diwan",
+    "name": "Raza",
     "slug": "diwan-private-urdu-poetry",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/Raza  Logo.png",
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": [
       "**/*"
@@ -15,6 +16,7 @@
     "android": {
       "package": "com.diwan.privatepoetry",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/Raza  Logo.png",
         "backgroundColor": "#FDFBF7"
       }
     },
