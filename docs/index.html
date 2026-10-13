@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Privacy Policy for the Raza private Urdu poetry application.">
+  <meta name="theme-color" content="#626246">
+  <title>Privacy Policy — Raza</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --page: #f4f1e8;
+      --paper: #fffdf7;
+      --ink: #292b25;
+      --muted: #67695e;
+      --line: #d8d3c4;
+      --accent: #626246;
+      --accent-soft: #e8e6d9;
+      --shadow: 0 24px 70px rgba(45, 45, 36, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(98, 98, 70, .12), transparent 30rem),
+        var(--page);
+      color: var(--ink);
+      font: 16px/1.75 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(880px, calc(100% - 32px));
+      margin: 48px auto;
+      padding: clamp(28px, 6vw, 72px);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    header {
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: .78rem;
+      font-weight: 750;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    h1, h2 { line-height: 1.2; }
+    h1 { margin: 0; font-family: Georgia, serif; font-size: clamp(2.25rem, 8vw, 4rem); }
+    h2 { margin: 38px 0 10px; font-size: 1.3rem; }
+    p { margin: 10px 0; }
+    ul { margin: 10px 0; padding-left: 1.35rem; }
+    li + li { margin-top: 8px; }
+    a { color: var(--accent); text-underline-offset: 3px; }
+    strong { font-weight: 700; }
+
+    .summary {
+      margin-top: 22px;
+      padding: 18px 20px;
+      background: var(--accent-soft);
+      border-radius: 14px;
+    }
+
+    .updated, footer { color: var(--muted); }
+
+    footer {
+      margin-top: 44px;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+      font-size: .92rem;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --page: #171812;
+        --paper: #22231c;
+        --ink: #f1eee3;
+        --muted: #bbb8ab;
+        --line: #414238;
+        --accent: #d3d0a9;
+        --accent-soft: #35362b;
+        --shadow: 0 24px 70px rgba(0, 0, 0, .28);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Raza · Private Urdu Poetry</p>
+      <h1>Privacy Policy</h1>
+      <p class="updated"><strong>Effective date:</strong> 13 October 2026</p>
+      <p class="summary">Raza is a private poetry library for an author and invited readers. We use personal data only to authenticate users, protect access, synchronize the library, and provide features requested in the app. We do not sell personal data or use it for advertising.</p>
+    </header>
+
+    <section>
+      <h2>1. Who operates Raza</h2>
+      <p>Raza is operated by Hassnain Raza Maitla. Questions or privacy requests may be sent to <a href="mailto:hassnainrazamaitla@gmail.com">hassnainrazamaitla@gmail.com</a>.</p>
+    </section>
+
+    <section>
+      <h2>2. Information we process</h2>
+      <ul>
+        <li><strong>Account and authentication data:</strong> the author's email address; reader name, username, password credential, account status, and sign-in session information. Reader passwords are stored on the server as one-way hashes, not as readable passwords.</li>
+        <li><strong>Device and security data:</strong> an app-generated device identifier, a general device label, sign-in and session timestamps, request identifiers, IP-based rate-limit information, and security/audit events. This is used to bind a reader account to an authorized device and prevent abuse.</li>
+        <li><strong>Library content:</strong> author profile information, biographies, profile images, book covers, book details, poetry, drafts, publication status, and ordering chosen by the author.</li>
+        <li><strong>Files you choose:</strong> profile images, cover images, backup files, and exported PDF or JSON files when you deliberately select, restore, save, or share them.</li>
+        <li><strong>App preferences and offline data:</strong> theme and font choices, cached library content, pending synchronization changes, and authentication tokens stored on the device.</li>
+      </ul>
+      <p>Raza does not include advertising or third-party analytics SDKs in the current app version.</p>
+    </section>
+
+    <section>
+      <h2>3. How information is used</h2>
+      <p>We process this information to authenticate the author and readers, restrict access to invited users, enforce device limits, display and edit poetry, synchronize content, upload author-selected images, create backups and PDFs, maintain sessions, diagnose errors, and protect the service from unauthorized access.</p>
+    </section>
+
+    <section>
+      <h2>4. Storage and service providers</h2>
+      <p>The mobile app stores encrypted library data and secure session information on the user's device. Online data is processed by service providers used to operate Raza:</p>
+      <ul>
+        <li><strong>Vercel</strong> hosts the application programming interface.</li>
+        <li><strong>Supabase</strong> provides the database and media storage.</li>
+        <li><strong>An email delivery provider</strong> sends one-time verification codes to the author.</li>
+        <li><strong>Expo</strong> is used to build and distribute application binaries; normal app use communicates with the configured Raza service rather than Expo Go.</li>
+      </ul>
+      <p>These providers may process data in countries other than the user's country under their own security and privacy commitments. We may also disclose information when required by law or when necessary to protect users, the service, or others.</p>
+    </section>
+
+    <section>
+      <h2>5. Permissions and user-controlled sharing</h2>
+      <p>Photo-library access is requested only when the author chooses a profile image or book cover. Document access is used only when the author selects a backup file. PDF and backup exports are shared only through a destination the author chooses using the device's sharing interface. Raza does not request microphone or precise-location access.</p>
+    </section>
+
+    <section>
+      <h2>6. Retention and deletion</h2>
+      <p>Account and library information is kept while it is needed to operate the private library. Sessions expire or may be revoked. A reader's account and associated access can be deleted by the author from the app. Local reader library data is removed from that device on logout. Some security and audit records may be retained for a reasonable period to protect the service and document administrative actions.</p>
+      <p>To request access, correction, or deletion of personal information, email <a href="mailto:hassnainrazamaitla@gmail.com?subject=Raza%20privacy%20request">hassnainrazamaitla@gmail.com</a>. Please include the relevant username or email address. We may need to verify the request before acting on it.</p>
+    </section>
+
+    <section>
+      <h2>7. Security</h2>
+      <p>Raza uses HTTPS, short-lived access tokens, revocable sessions, hashed reader passwords, hashed one-time codes, encrypted local library values, and protected device storage for keys and session data. No system can guarantee absolute security, so users should protect their device and credentials and report suspected unauthorized access promptly.</p>
+    </section>
+
+    <section>
+      <h2>8. Children's privacy</h2>
+      <p>Raza is a restricted-access literary application and is not directed to children under 13. We do not knowingly collect personal information from children under 13. If you believe a child has provided personal information, contact us so it can be reviewed and deleted where appropriate.</p>
+    </section>
+
+    <section>
+      <h2>9. Changes to this policy</h2>
+      <p>We may update this policy when the app, its service providers, or legal obligations change. The effective date at the top will be revised, and material changes will be communicated through an appropriate channel.</p>
+    </section>
+
+    <footer>
+      <p><strong>Contact:</strong> <a href="mailto:hassnainrazamaitla@gmail.com">hassnainrazamaitla@gmail.com</a></p>
+      <p>Package identifier: <code>com.diwan.privatepoetry</code></p>
+    </footer>
+  </main>
+</body>
+</html>
