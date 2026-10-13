@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Raza",
-    "slug": "diwan-private-urdu-poetry",
+    "slug": "raza",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/main-logo.png",
@@ -35,9 +35,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "b6e213d7-e685-44ef-b141-45a829b4b3ad"
+        "projectId": "d527a2cf-9720-4d0c-ad28-10718169e910"
       }
     },
-    "owner": "hassnain512"
+    "owner": "solutyics"
   }
 }
