@@ -103,6 +103,16 @@ export const repository = {
     const result: Writing = { id: input.id || id('writing'), bookId: input.bookId, title: input.title, content: input.content, status: input.status, orderIndex: existing?.orderIndex ?? writings.length, createdAt: existing?.createdAt || stamp, updatedAt: stamp };
     await local.saveWriting(result); return result;
   },
+  async moveWriting(writingId: string, destinationBookId: string) {
+    if (hasRemoteApi) {
+      try {
+        const result = await remoteApi.moveWriting(writingId, destinationBookId);
+        await local.saveWriting(result, false);
+        return result;
+      } catch (error) { if (!isNetworkFailure(error)) throw error; }
+    }
+    return local.moveWriting(writingId, destinationBookId, true);
+  },
   async deleteWriting(writingId: string) {
     if (hasRemoteApi) { try { await remoteApi.deleteWriting(writingId); await local.deleteWriting(writingId, false); return; } catch (error) { if (!isNetworkFailure(error)) throw error; } }
     await local.deleteWriting(writingId, true);

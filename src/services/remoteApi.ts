@@ -146,6 +146,7 @@ export const remoteApi = {
   getWritings: (bookId: string) => request<Writing[]>(`/api/books/${segment(bookId)}/writings`),
   createWriting: (bookId: string, writing: Partial<Writing>) => request<Writing>(`/api/books/${segment(bookId)}/writings`, { method: 'POST', body: JSON.stringify(writing) }),
   updateWriting: (id: string, writing: Partial<Writing>) => request<Writing>(`/api/writings/${segment(id)}`, { method: 'PUT', body: JSON.stringify(writing) }),
+  moveWriting: (id: string, destinationBookId: string) => request<Writing>(`/api/writings/${segment(id)}/move`, { method: 'POST', body: JSON.stringify({ bookId: destinationBookId }) }),
   deleteWriting: (id: string) => request<void>(`/api/writings/${segment(id)}`, { method: 'DELETE' }),
   reorderWritings: (bookId: string, orderedIds: string[]) => request<void>(`/api/books/${segment(bookId)}/reorder-writings`, { method: 'PUT', body: JSON.stringify({ orderedIds }) }),
   getReaders: () => request<ReaderAccount[]>('/api/readers'),

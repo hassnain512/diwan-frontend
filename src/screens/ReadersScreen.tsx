@@ -1,24 +1,119 @@
-﻿import React, { useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../store/AppContext';
-import { Button, Card, Field, Urdu } from '../components/Ui';
+import { Button, EmptyState, Field, Label, Urdu } from '../components/Ui';
+import { useDialog } from '../components/Dialog';
 import { colors } from '../theme/colors';
-import { fontFamily, getPalette } from '../theme/theme';
+import { fontFamily, getPalette, layout, radii, spacing, typography } from '../theme/theme';
 
 export function ReadersScreen() {
-  const app = useApp(); const [query, setQuery] = useState(''); const [adding, setAdding] = useState(false); const [name, setName] = useState(''); const [username, setUsername] = useState(''); const [password, setPassword] = useState(''); const [creating, setCreating] = useState(false);
+  const app = useApp();
+  const dialog = useDialog();
+  const [query, setQuery] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [creating, setCreating] = useState(false);
   const palette = getPalette(app.readingTheme);
   const dark = app.readingTheme === 'dark';
   const success = dark ? '#A8C9A4' : colors.success;
-  const warning = dark ? '#D8BC79' : colors.warning;
-  const danger = dark ? '#E1A0A0' : colors.danger;
-  const readers = useMemo(() => app.readers.filter(r => `${r.fullName} ${r.username}`.toLowerCase().includes(query.toLowerCase())), [app.readers, query]);
-  const create = async () => { if (!name.trim() || username.trim().length < 3 || password.length < 8) return Alert.alert('Invalid details', 'Enter a name, a username of at least 3 characters, and a password of at least 8 characters.'); setCreating(true); try { await app.createReader({ fullName: name.trim(), username: username.trim(), password }); setName(''); setUsername(''); setPassword(''); setAdding(false); } catch (e: any) { Alert.alert('Reader', e.message); } finally { setCreating(false); } };
-  return <FlatList style={[styles.root,{backgroundColor:palette.bg}]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} data={readers} keyExtractor={r => r.id} ListHeaderComponent={<><View style={styles.header}><View style={styles.headerCopy}><Urdu style={styles.heading}>Readers</Urdu><Urdu style={[styles.sub,{color:palette.muted}]}>{app.readers.length} total</Urdu></View><Button compact title={adding?'Close':'New reader'} icon={adding?'close':'person-add-outline'} onPress={() => setAdding(!adding)} /></View>
-    {adding ? <Card style={[styles.addCard,{borderColor:palette.border}]}><Urdu style={styles.addTitle}>New reader</Urdu><Field label="Full name" rtl style={{fontFamily}} value={name} onChangeText={setName} /><Field label="Username" value={username} onChangeText={setUsername} autoCapitalize="none" /><Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoCorrect={false} /><Button title="Create account" onPress={create} loading={creating} /></Card> : null}
-    <View style={[styles.search,{backgroundColor:palette.input,borderColor:palette.border}]}><Ionicons name="search-outline" size={17} color={palette.muted} /><TextInput value={query} onChangeText={setQuery} placeholder="Search readers" placeholderTextColor={palette.muted} style={[styles.searchInput,{color:palette.text}]} /></View>
-  </>} ListEmptyComponent={<Card style={styles.emptyCard}><Ionicons name="people-outline" size={26} color={palette.muted}/><Urdu style={[styles.empty,{color:palette.muted}]}>No readers found</Urdu></Card>} renderItem={({ item }) => <Card style={[styles.reader,{borderColor:palette.border}]}><View style={[styles.avatar,{backgroundColor:palette.accent}]}><Urdu style={{ fontSize: 18, lineHeight:32, color: palette.bg, fontWeight: '900' }}>{item.fullName.slice(0,1)}</Urdu></View><View style={styles.info}><View style={styles.nameLine}><Urdu style={styles.name}>{item.fullName}</Urdu><View style={[styles.badge, { backgroundColor: item.status === 'active' ? (dark?'#263329':colors.successBg) : palette.surface2 }]}><Urdu style={{ fontSize: 9, lineHeight:17, color: item.status === 'active' ? success : palette.muted }}>{item.status === 'active' ? 'Active' : 'Inactive'}</Urdu></View></View><Urdu style={[styles.meta,{color:palette.muted}]}>@{item.username} • {item.deviceId ? 'Bound' : 'Unbound'}</Urdu>{item.lastLogin ? <Urdu style={[styles.meta,{color:palette.muted}]}>Last login: {new Date(item.lastLogin).toLocaleDateString()}</Urdu> : null}</View><View style={styles.actions}><Pressable accessibilityRole="button" accessibilityLabel="Change reader status" onPress={() => app.updateReader(item.id, { status: item.status === 'active' ? 'inactive' : 'active' })} style={({pressed})=>[styles.action,{backgroundColor:palette.surface2,borderColor:palette.border},pressed&&styles.pressed]}><Ionicons name={item.status === 'active' ? 'pause-circle-outline' : 'play-circle-outline'} size={20} color={palette.accent} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Reset device" onPress={() => app.resetReaderDevice(item.id)} style={({pressed})=>[styles.action,{backgroundColor:palette.surface2,borderColor:palette.border},pressed&&styles.pressed]}><Ionicons name="phone-portrait-outline" size={19} color={warning} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Delete reader" onPress={() => Alert.alert('Delete reader?', item.fullName, [{ text:'Cancel', style:'cancel' }, { text:'Delete', style:'destructive', onPress:() => app.removeReader(item.id) }])} style={({pressed})=>[styles.action,{backgroundColor:palette.surface2,borderColor:palette.border},pressed&&styles.pressed]}><Ionicons name="trash-outline" size={19} color={danger} /></Pressable></View></Card>} />;
-}
-const styles = StyleSheet.create({ root:{flex:1}, content:{width:'100%',maxWidth:760,alignSelf:'center',padding:16,paddingBottom:104}, header:{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-end',marginBottom:14,gap:12}, headerCopy:{flex:1,alignItems:'flex-start'}, kicker:{fontSize:9,lineHeight:17,letterSpacing:.5}, heading:{fontSize:24,lineHeight:32,fontWeight:'800'}, sub:{fontSize:10,lineHeight:18,marginTop:1}, addCard:{gap:11,marginBottom:13,paddingTop:18}, addTitle:{fontSize:18,lineHeight:26,fontWeight:'800',textAlign:'left'}, search:{minHeight:48,borderWidth:1,borderRadius:15,flexDirection:'row',alignItems:'center',gap:8,paddingHorizontal:13,marginBottom:12}, searchInput:{flex:1,textAlign:'left',writingDirection:'ltr',fontSize:13,minHeight:46}, reader:{flexDirection:'row',alignItems:'center',gap:11,marginBottom:9,padding:13}, avatar:{width:46,height:46,borderRadius:15,alignItems:'center',justifyContent:'center'}, info:{flex:1,alignItems:'flex-start'}, nameLine:{flexDirection:'row',alignItems:'center',gap:7,flexWrap:'wrap'}, name:{fontSize:16,lineHeight:29,fontWeight:'800'}, meta:{fontSize:9,lineHeight:17,marginTop:1,textAlign:'left'}, badge:{paddingHorizontal:8,paddingVertical:2,borderRadius:999}, actions:{gap:5}, action:{width:44,height:44,borderRadius:10,borderWidth:1,alignItems:'center',justifyContent:'center'}, pressed:{opacity:.65,transform:[{scale:.96}]},emptyCard:{alignItems:'center',gap:6,paddingVertical:28},empty:{fontSize:12,lineHeight:23,textAlign:'center'} });
+  const readers = useMemo(() => app.readers.filter(reader => `${reader.fullName} ${reader.username}`.toLowerCase().includes(query.trim().toLowerCase())), [app.readers, query]);
 
+  const create = async () => {
+    if (!name.trim() || username.trim().length < 3 || password.length < 8) {
+      await dialog.alert({ title: 'Invalid details', message: 'Enter a name, a username of at least 3 characters, and a password of at least 8 characters.', tone: 'warning' });
+      return;
+    }
+    setCreating(true);
+    try {
+      await app.createReader({ fullName: name.trim(), username: username.trim(), password });
+      setName(''); setUsername(''); setPassword(''); setAdding(false);
+    } catch (error: any) {
+      await dialog.alert({ title: 'Reader', message: error.message, tone: 'danger' });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const showActions = async (item: (typeof app.readers)[number]) => {
+    const nextStatus = item.status === 'active' ? 'inactive' : 'active';
+    const choice = await dialog.choose({
+      title: item.fullName,
+      message: `@${item.username}`,
+      tone: 'info',
+      icon: 'person-outline',
+      dismissible: true,
+      choices: [
+        { id: 'cancel', label: 'Cancel' },
+        { id: 'toggle', label: item.status === 'active' ? 'Deactivate' : 'Activate', icon: item.status === 'active' ? 'pause-circle-outline' : 'checkmark-circle-outline' },
+        { id: 'reset', label: 'Reset device', icon: 'phone-portrait-outline' },
+        { id: 'delete', label: 'Delete reader', tone: 'danger', icon: 'trash-outline' }
+      ]
+    });
+    if (choice === 'toggle') await app.updateReader(item.id, { status: nextStatus });
+    if (choice === 'reset') await app.resetReaderDevice(item.id);
+    if (choice === 'delete') {
+      const confirmed = await dialog.confirm({ title: 'Delete reader?', message: item.fullName, confirmLabel: 'Delete', destructive: true, tone: 'danger', icon: 'trash-outline' });
+      if (confirmed) await app.removeReader(item.id);
+    }
+  };
+
+  return <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <FlatList
+      style={[styles.root, { backgroundColor: palette.bg }]}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      data={readers}
+      keyExtractor={reader => reader.id}
+      ListHeaderComponent={<>
+        <View style={styles.header}>
+          <View style={styles.headerCopy}>
+            <Text style={[styles.kicker, { color: palette.muted }]}>ACCESS</Text>
+            <Urdu style={styles.heading}>Readers</Urdu>
+            <Label style={{ color: palette.muted }}>{app.readers.length} accounts</Label>
+          </View>
+          <Button compact title={adding ? 'Close' : 'New reader'} icon={adding ? 'close' : 'person-add-outline'} onPress={() => setAdding(value => !value)} />
+        </View>
+
+        {adding ? <View style={[styles.addPanel, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <View style={styles.addCopy}><Urdu style={styles.addTitle}>Create reader</Urdu><Label style={{ color: palette.muted }}>Private access can be restricted to one device.</Label></View>
+          <Field label="Full name" rtl style={{ fontFamily }} value={name} onChangeText={setName} returnKeyType="next" />
+          <Field label="Username" value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} returnKeyType="next" />
+          <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoCorrect={false} returnKeyType="done" onSubmitEditing={() => void create()} />
+          <Button title="Create account" icon="person-add-outline" onPress={create} loading={creating} />
+        </View> : null}
+
+        <View style={[styles.search, { backgroundColor: palette.input, borderColor: palette.border }]}>
+          <Ionicons name="search-outline" size={18} color={palette.muted} />
+          <TextInput value={query} onChangeText={setQuery} placeholder="Search readers" placeholderTextColor={palette.muted} autoCapitalize="none" autoCorrect={false} style={[styles.searchInput, { color: palette.text }]} />
+          {query ? <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => setQuery('')} style={styles.clearButton}><Ionicons name="close-circle" size={19} color={palette.muted} /></Pressable> : null}
+        </View>
+      </>}
+      ListEmptyComponent={<EmptyState icon="people-outline" title={query ? 'No matching readers' : 'No readers yet'} message={query ? 'Try another name or username.' : 'Create a reader account to grant private library access.'} />}
+      renderItem={({ item }) => <View style={[styles.readerRow, { borderBottomColor: palette.border }]}>
+        <View style={[styles.avatar, { backgroundColor: palette.accentSoft }]}><Urdu style={[styles.avatarText, { color: palette.accentStrong }]}>{item.fullName.slice(0, 1)}</Urdu></View>
+        <View style={styles.info}>
+          <View style={styles.nameLine}>
+            <Urdu style={styles.name}>{item.fullName}</Urdu>
+            <View style={[styles.statusDot, { backgroundColor: item.status === 'active' ? success : palette.muted }]} />
+          </View>
+          <Text style={[styles.meta, { color: palette.muted }]}>@{item.username} · {item.deviceId ? 'Device bound' : 'No device'}</Text>
+          <Text style={[styles.meta, { color: palette.muted }]}>{item.lastLogin ? `Last login ${new Date(item.lastLogin).toLocaleDateString()}` : 'Never signed in'}</Text>
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Actions for ${item.fullName}`} onPress={() => void showActions(item)} style={({ pressed }) => [styles.moreButton, { borderColor: palette.border, backgroundColor: palette.surface }, pressed && styles.pressed]}><Ionicons name="ellipsis-horizontal" size={20} color={palette.accentStrong} /></Pressable>
+      </View>}
+    />
+  </KeyboardAvoidingView>;
+}
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 }, root: { flex: 1 }, content: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: 104 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: spacing.lg, gap: spacing.md }, headerCopy: { flex: 1, alignItems: 'flex-start' }, kicker: { fontSize: 10, letterSpacing: 1.1, fontWeight: '800', marginBottom: 1 }, heading: { fontSize: typography.urdu.title.fontSize, lineHeight: typography.urdu.title.lineHeight, fontWeight: '800' },
+  addPanel: { borderWidth: 1, borderRadius: radii.card, padding: spacing.lg, gap: spacing.md, marginBottom: spacing.lg }, addCopy: { gap: 2 }, addTitle: { fontSize: 18, lineHeight: 34, fontWeight: '800', textAlign: 'left' },
+  search: { minHeight: 50, borderWidth: 1, borderRadius: radii.control, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.sm }, searchInput: { flex: 1, fontSize: 14, minHeight: 48 }, clearButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  readerRow: { minHeight: 82, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth }, avatar: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, avatarText: { fontSize: 18, lineHeight: 34, fontWeight: '800' }, info: { flex: 1, minWidth: 0, alignItems: 'flex-start' }, nameLine: { flexDirection: 'row', alignItems: 'center', gap: 7 }, name: { fontSize: 16, lineHeight: 31, fontWeight: '800' }, statusDot: { width: 7, height: 7, borderRadius: 999 }, meta: { fontSize: 11, lineHeight: 17, textAlign: 'left' }, moreButton: { width: layout.touchTarget, height: layout.touchTarget, borderRadius: radii.control, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, pressed: { opacity: .72, transform: [{ scale: .97 }] }
+});

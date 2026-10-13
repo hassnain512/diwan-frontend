@@ -158,12 +158,12 @@ const styles = StyleSheet.create({
   kicker: { fontSize: 10, lineHeight: 21, textAlign: 'center', writingDirection: 'rtl', includeFontPadding: true },
   kickerCompact: { fontSize: 7, lineHeight: 14 },
   titleArea: { width: '100%', alignItems: 'center', justifyContent: 'center', flexShrink: 1 },
-  title: { width: '100%', textAlign: 'center', writingDirection: 'rtl', fontSize: 24, lineHeight: 45, includeFontPadding: true },
-  titleCompact: { fontSize: 17, lineHeight: 31 },
+  title: { width: '100%', textAlign: 'center', writingDirection: 'rtl', fontSize: 24, lineHeight: 48, paddingTop: 2, paddingBottom: 7, includeFontPadding: true },
+  titleCompact: { fontSize: 17, lineHeight: 34, paddingTop: 1, paddingBottom: 5 },
   ornamentRow: { width: '72%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 2 },
   ornament: { fontSize: 13, lineHeight: 17, textAlign: 'center' },
   ornamentCompact: { fontSize: 8, lineHeight: 11 },
   titleRule: { flex: 1, height: .7, opacity: .75 },
-  author: { maxWidth: '94%', fontSize: 10, lineHeight: 21, opacity: .94, writingDirection: 'rtl', textAlign: 'center', includeFontPadding: true },
-  authorCompact: { fontSize: 7, lineHeight: 14 }
+  author: { maxWidth: '94%', fontSize: 10, lineHeight: 22, paddingBottom: 3, opacity: .94, writingDirection: 'rtl', textAlign: 'center', includeFontPadding: true },
+  authorCompact: { fontSize: 7, lineHeight: 15, paddingBottom: 2 }
 });

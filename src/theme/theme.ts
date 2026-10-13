@@ -77,11 +77,48 @@ export function nastaliqForWeight(weight?: string | number) {
 
 export type AppPalette = ReturnType<typeof getPalette>;
 
+export const spacing = {
+  xxs: 2,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+  xxxl: 40
+} as const;
+
 export const layout = {
   contentMaxWidth: 760,
-  pagePadding: 16,
-  pagePaddingWide: 24,
+  readerMaxWidth: 620,
+  pagePadding: spacing.lg,
+  pagePaddingWide: spacing.xl,
   touchTarget: 44
 } as const;
 
-export const radii = { small: 10, medium: 15, large: 22, pill: 999 } as const;
+export const radii = {
+  small: 8,
+  control: 12,
+  card: 16,
+  large: 24,
+  pill: 999
+} as const;
+
+export const typography = {
+  latin: {
+    display: { fontSize: 30, lineHeight: 36 },
+    title: { fontSize: 22, lineHeight: 28 },
+    section: { fontSize: 18, lineHeight: 24 },
+    body: { fontSize: 14, lineHeight: 21 },
+    small: { fontSize: 12, lineHeight: 18 },
+    caption: { fontSize: 11, lineHeight: 16 }
+  },
+  urdu: {
+    display: { fontSize: 30, lineHeight: 57 },
+    title: { fontSize: 24, lineHeight: 46 },
+    section: { fontSize: 20, lineHeight: 39 },
+    body: { fontSize: 17, lineHeight: 34 },
+    small: { fontSize: 13, lineHeight: 27 },
+    poetry: { fontSize: 20, lineHeight: 50 }
+  }
+} as const;

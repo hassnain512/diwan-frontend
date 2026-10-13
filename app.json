@@ -4,7 +4,7 @@
     "slug": "diwan-private-urdu-poetry",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/Raza  Logo.png",
+    "icon": "./assets/main-logo.png",
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": [
       "**/*"
@@ -15,10 +15,12 @@
     },
     "android": {
       "package": "com.diwan.privatepoetry",
+      "versionCode": 2,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/Raza  Logo.png",
-        "backgroundColor": "#FDFBF7"
-      }
+        "foregroundImage": "./assets/main-logo-adaptive.png",
+        "backgroundColor": "#626246"
+      },
+      "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
       [
@@ -28,7 +30,8 @@
           "microphonePermission": false
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-asset"
     ],
     "extra": {
       "eas": {

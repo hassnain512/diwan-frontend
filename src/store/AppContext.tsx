@@ -26,6 +26,7 @@ interface AppContextValue {
   saveBook(data: Partial<Book> & { title: string; status: BookStatus }): Promise<Book>;
   removeBook(id: string): Promise<void>;
   saveWriting(data: Partial<Writing> & { bookId: string; title: string; content: string; status: WritingStatus }): Promise<Writing>;
+  moveWriting(id: string, destinationBookId: string): Promise<Writing>;
   removeWriting(id: string): Promise<void>;
   reorderWritings(bookId: string, orderedIds: string[]): Promise<void>;
   saveAuthor(data: Partial<AuthorProfile>): Promise<void>;
@@ -135,6 +136,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async saveBook(data: Partial<Book> & { title: string; status: BookStatus }) { const result = await repository.saveBook(data); await refresh(); return result; },
     async removeBook(id: string) { await repository.deleteBook(id); await refresh(); },
     async saveWriting(data: Partial<Writing> & { bookId: string; title: string; content: string; status: WritingStatus }) { const result = await repository.saveWriting(data); await refresh(); return result; },
+    async moveWriting(id: string, destinationBookId: string) { const result = await repository.moveWriting(id, destinationBookId); await refresh(); return result; },
     async removeWriting(id: string) { await repository.deleteWriting(id); await refresh(); },
     async reorderWritings(bookId: string, ids: string[]) { await repository.reorderWritings(bookId, ids); await refresh(); },
     async saveAuthor(data: Partial<AuthorProfile>) { await repository.saveAuthor(data); await refresh(); },

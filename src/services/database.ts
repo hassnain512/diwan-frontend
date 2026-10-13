@@ -124,6 +124,33 @@ export async function deleteWriting(id: string, queue = true) {
   if (queue) await enqueue('writing', id, 'delete', { id }, timestamp);
 }
 
+export async function moveWriting(id: string, destinationBookId: string, queue = true): Promise<Writing> {
+  const database = await db();
+  const all = await getWritings();
+  const current = all.find(writing => writing.id === id);
+  if (!current) throw new Error('Poem not found.');
+  if (current.bookId === destinationBookId) return current;
+  if (!(await getBooks()).some(book => book.id === destinationBookId)) throw new Error('Destination collection not found.');
+
+  const source = all.filter(writing => writing.bookId === current.bookId && writing.id !== id).sort((a, b) => a.orderIndex - b.orderIndex);
+  const destination = all.filter(writing => writing.bookId === destinationBookId && writing.id !== id).sort((a, b) => a.orderIndex - b.orderIndex);
+  const stamp = new Date().toISOString();
+  const moved: Writing = { ...current, bookId: destinationBookId, orderIndex: destination.length, updatedAt: stamp };
+  const updates = [
+    ...source.map((writing, orderIndex) => ({ ...writing, orderIndex, updatedAt: stamp })),
+    ...destination.map((writing, orderIndex) => ({ ...writing, orderIndex, updatedAt: stamp })),
+    moved
+  ];
+
+  await database.withTransactionAsync(async () => {
+    for (const writing of updates) {
+      await database.runAsync('INSERT OR REPLACE INTO writings (id,bookId,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?,?)', writing.id, writing.bookId, JSON.stringify(writing), writing.status, writing.orderIndex, writing.updatedAt);
+      if (queue) await enqueue('writing', writing.id, 'upsert', writing, writing.updatedAt);
+    }
+  });
+  return moved;
+}
+
 export async function reorderWritings(bookId: string, orderedIds: string[], queue = true) {
   const database = await db();
   const current = await getWritings(bookId);

@@ -1,131 +1,107 @@
-﻿import React, { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Image, NativeSyntheticEvent, Pressable, StyleSheet, Text, TextInput, TextInputKeyPressEventData, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { Button, Card, Field, Screen, Urdu } from '../components/Ui';
+import { Button, Field, Screen, Urdu } from '../components/Ui';
+import { useDialog } from '../components/Dialog';
 import { useApp } from '../store/AppContext';
-import { getPalette } from '../theme/theme';
+import { getPalette, layout, radii, spacing } from '../theme/theme';
+
+function OtpBoxes({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const app = useApp();
+  const palette = getPalette(app.readingTheme);
+  const refs = useRef<Array<TextInput | null>>([]);
+  const digits = Array.from({ length: 6 }, (_, index) => value[index] || '');
+
+  const setDigits = (next: string) => onChange(next.replace(/\D/g, '').slice(0, 6));
+  const changeDigit = (index: number, raw: string) => {
+    const numeric = raw.replace(/\D/g, '');
+    if (numeric.length > 1) {
+      const pasted = numeric.slice(0, 6);
+      setDigits(pasted);
+      refs.current[Math.min(pasted.length, 6) - 1]?.focus();
+      return;
+    }
+    const current = digits.slice();
+    current[index] = numeric.slice(-1);
+    const next = current.join('').slice(0, 6);
+    setDigits(next);
+    if (numeric && index < 5) refs.current[index + 1]?.focus();
+  };
+  const keyPress = (index: number, event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+    if (event.nativeEvent.key === 'Backspace' && !digits[index] && index > 0) refs.current[index - 1]?.focus();
+  };
+
+  return <View style={styles.otpWrap}>
+    <Text style={[styles.otpLabel, { color: palette.muted }]}>6-digit code</Text>
+    <View style={styles.otpRow}>
+      {digits.map((digit, index) => <TextInput
+        key={index}
+        ref={ref => { refs.current[index] = ref; }}
+        accessibilityLabel={`Verification code digit ${index + 1}`}
+        value={digit}
+        onChangeText={text => changeDigit(index, text)}
+        onKeyPress={event => keyPress(index, event)}
+        keyboardType="number-pad"
+        inputMode="numeric"
+        maxLength={index === 0 ? 6 : 1}
+        selectTextOnFocus
+        selectionColor={palette.accent}
+        style={[styles.otpBox, { color: palette.text, backgroundColor: palette.input, borderColor: digit ? palette.accent : palette.border }]}
+      />)}
+    </View>
+  </View>;
+}
 
 export function AuthScreen({ onBack }: { onBack: () => void }) {
   const app = useApp();
+  const dialog = useDialog();
   const palette = getPalette(app.readingTheme);
   const [mode, setMode] = useState<'reader' | 'admin'>('reader');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('hassnainmaitla313@gmail.com');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const readerLogin = async () => {
-    if (!username.trim() || !password) return Alert.alert('Missing details', 'Enter your username and password.');
-    setLoading(true);
-    try { await app.loginReader(username.trim(), password); }
-    catch (e: any) { Alert.alert(e?.code === 'DEVICE_LOCKED' ? 'Device locked' : 'Unable to sign in', e?.message || 'Check your credentials.'); }
-    finally { setLoading(false); }
-  };
-  const sendOtp = async () => {
-    if (!email.trim()) return;
-    setLoading(true);
-    try { await app.sendAdminOtp(email.trim()); setOtp(''); setOtpSent(true); }
-    catch (e: any) { Alert.alert('Verification code', e.message); }
-    finally { setLoading(false); }
-  };
-  const verify = async () => {
-    setLoading(true);
-    try { await app.verifyAdminOtp(email.trim(), otp.trim()); }
-    catch (e: any) { Alert.alert('Verification code', e.message); }
-    finally { setLoading(false); }
-  };
-  const onAccent = palette.dark ? '#11120F' : '#FFFCF7';
+  const readerLogin = async () => { if (!username.trim() || !password) { await dialog.alert({ title: 'Missing details', message: 'Enter your username and password.', tone: 'warning' }); return; } setLoading(true); try { await app.loginReader(username.trim(),password); } catch(e:any){ await dialog.alert({ title: e?.code==='DEVICE_LOCKED'?'Device locked':'Unable to sign in', message: e?.message||'Check your credentials.', tone: e?.code==='DEVICE_LOCKED'?'warning':'danger', icon: e?.code==='DEVICE_LOCKED'?'lock-closed-outline':undefined }); } finally { setLoading(false); } };
+  const sendOtp = async () => { if(!email.trim()) { await dialog.alert({ title: 'Email required', message: 'Enter the author email address.', tone: 'warning' }); return; } setLoading(true); try { await app.sendAdminOtp(email.trim()); setOtp(''); setOtpSent(true); } catch(e:any){ setOtp(''); setOtpSent(false); await dialog.alert({ title: e?.code === 'AUTHOR_NOT_REGISTERED' ? 'Email not registered' : 'Verification code', message: e.message, tone: 'danger' }); } finally { setLoading(false); } };
+  const verify = async () => { if (otp.length !== 6) { await dialog.alert({ title: 'Verification code', message: 'Enter all 6 digits.', tone: 'warning' }); return; } setLoading(true); try { await app.verifyAdminOtp(email.trim(),otp); } catch(e:any){ await dialog.alert({ title: 'Verification code', message: e.message, tone: 'danger' }); } finally { setLoading(false); } };
+  const activeForeground = palette.dark ? '#11120F' : '#FFFCF7';
 
   return <Screen scroll keyboard style={styles.root}>
-    <StatusBar style={palette.dark ? 'light' : 'dark'} />
+    <StatusBar style={palette.dark?'light':'dark'}/>
     <View style={styles.topbar}>
-      <Pressable accessibilityLabel="Back" onPress={onBack} style={[styles.topButton, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <Ionicons name="arrow-back" size={18} color={palette.accent} />
-      </Pressable>
-      <Pressable accessibilityLabel="Change theme" onPress={() => app.setTheme(palette.dark ? 'classic' : 'dark')} style={[styles.topButton, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <Ionicons name={palette.dark ? 'sunny-outline' : 'moon-outline'} size={18} color={palette.accent} />
-      </Pressable>
+      <Pressable accessibilityLabel="Back" onPress={onBack} style={({pressed})=>[styles.iconButton,{borderColor:palette.border,backgroundColor:palette.surface},pressed&&styles.pressed]}><Ionicons name="arrow-back" size={19} color={palette.accentStrong}/></Pressable>
+      <Pressable accessibilityLabel="Change theme" onPress={()=>app.setTheme(palette.dark?'classic':'dark')} style={({pressed})=>[styles.iconButton,{borderColor:palette.border,backgroundColor:palette.surface},pressed&&styles.pressed]}><Ionicons name={palette.dark?'sunny-outline':'moon-outline'} size={19} color={palette.accentStrong}/></Pressable>
     </View>
 
-    <View style={styles.frame}>
-      <Card style={[styles.portal, { backgroundColor: palette.elevated, borderColor: palette.border, shadowColor: palette.shadow }]}>
-        <View style={[styles.corner, styles.cornerRight, { borderColor: palette.gold }]} />
-        <View style={[styles.corner, styles.cornerLeft, { borderColor: palette.gold }]} />
-        <View style={[styles.seal, { backgroundColor: palette.surface, borderColor: palette.borderStrong }]}>
-          <Ionicons name="shield-checkmark-outline" size={29} color={palette.accent} />
-        </View>
-        <Urdu style={styles.brand}>Kalam E Raza</Urdu>
-        <Text style={[styles.english, { color: palette.gold }]}>CONTROLLED ACCESS POETRY PORTAL</Text>
-        <View style={[styles.flourish, { backgroundColor: palette.gold }]}><View style={[styles.flourishDot, { backgroundColor: palette.gold }]} /></View>
+    <View style={styles.shell}>
+      <View style={styles.brandBlock}>
+        <Image source={require('../../assets/Raza  Logo.png')} resizeMode="contain" style={styles.logo}/>
+        <Urdu style={styles.brand}>Kalam e Raza</Urdu>
+        <Text style={[styles.tagline,{color:palette.muted}]}>Private poetry library</Text>
+      </View>
 
-        <View style={[styles.tabs, { backgroundColor: palette.surface2, borderColor: palette.border }]}>
-          <Pressable onPress={() => setMode('reader')} style={[styles.tab, mode === 'reader' && { backgroundColor: palette.accent }]}>
-            <Ionicons name="book-outline" size={16} color={mode === 'reader' ? onAccent : palette.muted} />
-            <Urdu style={[styles.tabText, { color: mode === 'reader' ? onAccent : palette.muted }]}>Reader</Urdu>
-          </Pressable>
-          <Pressable onPress={() => setMode('admin')} style={[styles.tab, mode === 'admin' && { backgroundColor: palette.accent }]}>
-            <Ionicons name="person-outline" size={16} color={mode === 'admin' ? onAccent : palette.muted} />
-            <Urdu style={[styles.tabText, { color: mode === 'admin' ? onAccent : palette.muted }]}>Author</Urdu>
-          </Pressable>
+      <View style={[styles.panel,{backgroundColor:palette.surface,borderColor:palette.border}]}>
+        <View style={[styles.tabs,{backgroundColor:palette.surface2,borderColor:palette.border}]}>
+          {([['reader','Reader','book-outline'],['admin','Author','person-outline']] as const).map(([value,label,icon])=><Pressable key={value} onPress={()=>{setMode(value);setOtpSent(false);setOtp('');}} style={({pressed})=>[styles.tab,mode===value&&{backgroundColor:palette.accent},pressed&&styles.pressed]}><Ionicons name={icon} size={16} color={mode===value?activeForeground:palette.muted}/><Text style={[styles.tabText,{color:mode===value?activeForeground:palette.muted}]}>{label}</Text></Pressable>)}
         </View>
 
-        {mode === 'reader' ? <View style={styles.form}>
-          <Field label="Username" value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} placeholder="e.g. ali" />
-          <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••••" />
-          <Button title="Open Library" icon="arrow-forward" onPress={readerLogin} loading={loading} />
-          {/* {!hasRemoteApi ? <View style={[styles.demo, { borderColor: palette.border }]}>
-            <Urdu style={[styles.demoLabel, { color: palette.muted }]}>Demo accounts</Urdu>
-            <View style={styles.demoRow}>
-              <Pressable onPress={() => { setUsername('ahmed'); setPassword('urdu123'); }} style={[styles.credential, { backgroundColor: palette.surface, borderColor: palette.border }]}><Text style={[styles.credentialText, { color: palette.text }]}>ahmed / urdu123</Text></Pressable>
-              <Pressable onPress={() => { setUsername('fatima'); setPassword('shair786'); }} style={[styles.credential, { backgroundColor: palette.surface, borderColor: palette.border }]}><Text style={[styles.credentialText, { color: palette.text }]}>fatima / shair786</Text></Pressable>
-            </View>
-          </View> : null} */}
-        </View> : <View style={styles.form}>
-          {!otpSent ? <>
-            <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
-            <Button title="Send verification code" icon="mail-outline" onPress={sendOtp} loading={loading} />
-          </> : <>
-            <Field label="6-digit code" value={otp} onChangeText={setOtp} keyboardType="number-pad" maxLength={6} />
-            <Button title="Open Dashboard" icon="shield-checkmark-outline" onPress={verify} loading={loading} />
-            <Button title="Request another code" variant="ghost" onPress={() => setOtpSent(false)} />
-          </>}
+        {mode==='reader'?<View style={styles.form}>
+          <View><Text style={[styles.formTitle,{color:palette.text}]}>Welcome back</Text><Text style={[styles.formSub,{color:palette.muted}]}>Sign in to open your private library.</Text></View>
+          <Field label="Username" value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} placeholder="Your username" returnKeyType="next"/>
+          <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••••" returnKeyType="done" onSubmitEditing={readerLogin}/>
+          <Button title="Enter library" icon="arrow-forward" onPress={readerLogin} loading={loading}/>
+          <View style={styles.secure}><Ionicons name="lock-closed-outline" size={14} color={palette.muted}/><Text style={[styles.secureText,{color:palette.muted}]}>This library is private and device access may be restricted.</Text></View>
+        </View>:<View style={styles.form}>
+          <View><Text style={[styles.formTitle,{color:palette.text}]}>Author access</Text><Text style={[styles.formSub,{color:palette.muted}]}>Verify your author account to open the studio.</Text></View>
+          {!otpSent?<><Field label="Author email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="off" importantForAutofill="no" textContentType="none" placeholder="Enter author email" returnKeyType="send" onSubmitEditing={sendOtp}/><Button title="Send verification code" icon="mail-outline" onPress={sendOtp} loading={loading}/></>:<><OtpBoxes value={otp} onChange={setOtp}/><Button title="Open Author Studio" icon="shield-checkmark-outline" onPress={verify} loading={loading} disabled={otp.length!==6}/><Button title="Use another email" variant="ghost" onPress={()=>{setOtpSent(false);setOtp('');}}/></>}
         </View>}
-      </Card>
+      </View>
     </View>
   </Screen>;
 }
 
-const styles = StyleSheet.create({
-  root: { padding: 18, paddingBottom: 34 },
-  topbar: { width: '100%', maxWidth: 520, alignSelf: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  topButton: { width: 44, height: 44, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  frame: { width: '100%', maxWidth: 520, alignSelf: 'center' },
-  portal: { overflow: 'hidden', paddingHorizontal: 20, paddingVertical: 28, shadowOffset: { width: 0, height: 14 }, shadowOpacity: .12, shadowRadius: 26, elevation: 5 },
-  corner: { position: 'absolute', top: 13, width: 24, height: 24, opacity: .45 },
-  cornerRight: { right: 13, borderTopWidth: 1, borderRightWidth: 1, borderTopRightRadius: 8 },
-  cornerLeft: { left: 13, borderTopWidth: 1, borderLeftWidth: 1, borderTopLeftRadius: 8 },
-  seal: { alignSelf: 'center', width: 58, height: 58, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 7 },
-  brand: { textAlign: 'center', fontSize: 30, lineHeight: 49, fontWeight: '700' },
-  english: { textAlign: 'center', fontSize: 9, letterSpacing: 2.2, marginTop: -4 },
-  flourish: { width: 50, height: 1, alignSelf: 'center', marginTop: 16, marginBottom: 18, alignItems: 'center', justifyContent: 'center' },
-  flourishDot: { width: 5, height: 5, borderRadius: 3 },
-  tabs: { flexDirection: 'row', borderWidth: 1, borderRadius: 15, padding: 4, gap: 4 },
-  tab: { flex: 1, minHeight: 44, borderRadius: 11, paddingHorizontal: 6, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  tabText: { fontSize: 13, lineHeight: 25, fontWeight: '700' },
-  form: { marginTop: 18, gap: 14 },
-  notice: { minHeight: 62, borderWidth: 1, borderRadius: 15, paddingHorizontal: 13, paddingVertical: 9, flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
-  help: { flex: 1, textAlign: 'right', fontSize: 11, lineHeight: 23 },
-  secureLine: { flexDirection: 'row-reverse', alignItems: 'center', gap: 7, paddingHorizontal: 3 },
-  secureText: { flex: 1, fontSize: 9, lineHeight: 20, textAlign: 'right' },
-  demo: { borderTopWidth: 1, paddingTop: 13, marginTop: 2, gap: 8 },
-  demoLabel: { fontSize: 10, lineHeight: 22, textAlign: 'right' },
-  demoRow: { flexDirection: 'row-reverse', gap: 7, flexWrap: 'wrap' },
-  credential: { flexGrow: 1, borderWidth: 1, borderRadius: 11, minHeight: 38, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
-  credentialText: { fontSize: 11 },
-  privacy: { textAlign: 'center', fontSize: 9, lineHeight: 22, marginTop: 15 }
-});
-
-
+const styles=StyleSheet.create({root:{paddingHorizontal:spacing.lg},topbar:{width:'100%',maxWidth:layout.readerMaxWidth,alignSelf:'center',flexDirection:'row',justifyContent:'space-between'},iconButton:{width:44,height:44,borderRadius:12,borderWidth:1,alignItems:'center',justifyContent:'center'},shell:{width:'100%',maxWidth:500,alignSelf:'center',paddingTop:24,gap:28},brandBlock:{alignItems:'center'},logo:{width:74,height:74},brand:{fontSize:30,lineHeight:57,fontWeight:'700',marginTop:2},tagline:{fontSize:12,letterSpacing:.2,marginTop:-7},panel:{borderWidth:1,borderRadius:20,padding:16},tabs:{flexDirection:'row',gap:4,padding:4,borderWidth:1,borderRadius:14},tab:{flex:1,minHeight:44,borderRadius:10,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7},tabText:{fontSize:12,fontWeight:'700'},form:{gap:15,paddingTop:22},formTitle:{fontSize:19,fontWeight:'800'},formSub:{fontSize:11,lineHeight:17,marginTop:3},secure:{flexDirection:'row',alignItems:'center',gap:7,justifyContent:'center',paddingHorizontal:8},secureText:{fontSize:10,lineHeight:16,flexShrink:1,textAlign:'center'},otpWrap:{gap:spacing.sm},otpLabel:{fontSize:12,fontWeight:'600'},otpRow:{flexDirection:'row',justifyContent:'space-between',gap:spacing.xs},otpBox:{flex:1,maxWidth:50,minWidth:36,height:52,borderWidth:1,borderRadius:radii.control,textAlign:'center',fontSize:21,fontWeight:'700',paddingVertical:0},pressed:{opacity:.72,transform:[{scale:.98}]}});

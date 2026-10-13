@@ -66,7 +66,7 @@ function PoetryDivider({ color, fontFamily }: { color: string; fontFamily: strin
 
 export function PoetryHtml({ html, color, fontSize = 21, lineHeight = 48, selectable = false, fontFamily = nastaliqWeights.regular }: { html: string; color: string; fontSize?: number; lineHeight?: number; selectable?: boolean; fontFamily?: string }) {
   const lines = toLines(html);
-  const safeLineHeight = Math.max(lineHeight, Math.ceil(fontSize * 1.85));
+  const safeLineHeight = Math.max(lineHeight, Math.ceil(fontSize * 1.95));
   const stanzaGap = Math.max(12, Math.round(safeLineHeight * .3));
 
   return <View style={styles.container}>{lines.map((line, index) => {
@@ -77,7 +77,7 @@ export function PoetryHtml({ html, color, fontSize = 21, lineHeight = 48, select
     const quoted = segments.some(segment => segment.flags.quote);
     const verse = <Text
       selectable={selectable}
-      style={[styles.line, { color, fontSize, lineHeight: safeLineHeight, minHeight: safeLineHeight + 6, fontFamily }]}
+      style={[styles.line, { color, fontSize, lineHeight: safeLineHeight, minHeight: safeLineHeight + 10, fontFamily }]}
     >
       {segments.map((segment, segmentIndex) => {
         const segmentStyle: TextStyle = {
@@ -97,7 +97,7 @@ export function PoetryHtml({ html, color, fontSize = 21, lineHeight = 48, select
 
 const styles = StyleSheet.create({
   container: { width: '100%', alignItems: 'stretch' },
-  line: { width: '100%', paddingTop: 3, paddingBottom: 3, textAlign: 'center', textAlignVertical: 'center', writingDirection: 'rtl', includeFontPadding: true },
+  line: { width: '100%', paddingTop: 4, paddingBottom: 7, textAlign: 'center', textAlignVertical: 'center', writingDirection: 'rtl', includeFontPadding: true, overflow: 'visible' },
   dividerRow: { width: '58%', alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 13 },
   dividerRule: { flex: 1, height: .7, opacity: .28 },
   divider: { fontSize: 14, lineHeight: 24, opacity: .7, textAlign: 'center', includeFontPadding: true },
