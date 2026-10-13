@@ -1,11 +1,48 @@
 import * as SQLite from 'expo-sqlite';
 import { seedAuthor, seedBooks, seedReaders, seedWritings } from '../data';
 import { AuthorProfile, Book, ReaderAccount, Writing } from '../types';
+import { decryptLocalJson, decryptLocalValue, encryptLocalJson, encryptLocalValue, isEncryptedLocalValue } from './localEncryption';
 
 declare const process: { env: { EXPO_PUBLIC_API_URL?: string } };
 
 let dbPromise: ReturnType<typeof SQLite.openDatabaseAsync> | null = null;
 const db = () => (dbPromise ??= SQLite.openDatabaseAsync('diwan.db'));
+
+async function migrateSensitiveRows(database: Awaited<ReturnType<typeof SQLite.openDatabaseAsync>>) {
+  const migrated = await database.getFirstAsync<{ value: string }>("SELECT value FROM settings WHERE key='local_encryption_v1_migrated'");
+  if (migrated?.value === '1') return;
+
+  const targets = [
+    { table: 'author', id: 'id', column: 'json' },
+    { table: 'books', id: 'id', column: 'json' },
+    { table: 'writings', id: 'id', column: 'json' },
+    { table: 'readers', id: 'id', column: 'json' },
+    { table: 'outbox', id: 'id', column: 'payload' }
+  ] as const;
+
+  await database.withTransactionAsync(async () => {
+    for (const target of targets) {
+      const rows = await database.getAllAsync<Record<string, string | number>>(
+        `SELECT ${target.id} AS rowId, ${target.column} AS privateValue FROM ${target.table}`
+      );
+      for (const row of rows) {
+        const privateValue = String(row.privateValue ?? '');
+        if (!privateValue || isEncryptedLocalValue(privateValue)) continue;
+        const encrypted = await encryptLocalValue(privateValue);
+        await database.runAsync(
+          `UPDATE ${target.table} SET ${target.column}=? WHERE ${target.id}=?`,
+          encrypted,
+          row.rowId
+        );
+      }
+    }
+    await database.runAsync(
+      'INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)',
+      'local_encryption_v1_migrated',
+      '1'
+    );
+  });
+}
 
 export async function initializeDatabase() {
   const database = await db();
@@ -22,6 +59,8 @@ export async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_outbox_entity ON outbox(entityType, entityId);
   `);
 
+  await migrateSensitiveRows(database);
+
   const demoMode = !(process.env.EXPO_PUBLIC_API_URL || '').trim();
   const intendedMode = demoMode ? 'demo' : 'remote';
   const previousMode = await getSetting('storage_mode');
@@ -37,15 +76,15 @@ export async function initializeDatabase() {
   const seeded = await getSetting('seeded');
   if (!seeded && demoMode) {
     await database.withTransactionAsync(async () => {
-      await database.runAsync('INSERT OR REPLACE INTO author (id,json,updatedAt) VALUES (1,?,?)', JSON.stringify(seedAuthor), seedAuthor.updatedAt);
+      await database.runAsync('INSERT OR REPLACE INTO author (id,json,updatedAt) VALUES (1,?,?)', await encryptLocalJson(seedAuthor), seedAuthor.updatedAt);
       for (const book of seedBooks) {
-        await database.runAsync('INSERT OR REPLACE INTO books (id,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?)', book.id, JSON.stringify(book), book.status, book.orderIndex, book.updatedAt);
+        await database.runAsync('INSERT OR REPLACE INTO books (id,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?)', book.id, await encryptLocalJson(book), book.status, book.orderIndex, book.updatedAt);
       }
       for (const writing of seedWritings) {
-        await database.runAsync('INSERT OR REPLACE INTO writings (id,bookId,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?,?)', writing.id, writing.bookId, JSON.stringify(writing), writing.status, writing.orderIndex, writing.updatedAt);
+        await database.runAsync('INSERT OR REPLACE INTO writings (id,bookId,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?,?)', writing.id, writing.bookId, await encryptLocalJson(writing), writing.status, writing.orderIndex, writing.updatedAt);
       }
       for (const reader of seedReaders) {
-        await database.runAsync('INSERT OR IGNORE INTO readers (id,username,json,status,updatedAt) VALUES (?,?,?,?,?)', reader.id, reader.username, JSON.stringify(reader), reader.status, reader.createdAt);
+        await database.runAsync('INSERT OR IGNORE INTO readers (id,username,json,status,updatedAt) VALUES (?,?,?,?,?)', reader.id, reader.username, await encryptLocalJson(reader), reader.status, reader.createdAt);
       }
       await database.runAsync('INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)', 'seeded', '1');
     });
@@ -72,24 +111,24 @@ export async function removeSetting(key: string) {
 export async function getAuthor(): Promise<AuthorProfile> {
   const database = await db();
   const row = await database.getFirstAsync<{ json: string }>('SELECT json FROM author WHERE id=1');
-  return row ? JSON.parse(row.json) : seedAuthor;
+  return row ? decryptLocalJson<AuthorProfile>(row.json) : seedAuthor;
 }
 
 export async function saveAuthor(author: AuthorProfile, queue = true) {
   const database = await db();
-  await database.runAsync('INSERT OR REPLACE INTO author (id,json,updatedAt) VALUES (1,?,?)', JSON.stringify(author), author.updatedAt);
+  await database.runAsync('INSERT OR REPLACE INTO author (id,json,updatedAt) VALUES (1,?,?)', await encryptLocalJson(author), author.updatedAt);
   if (queue) await enqueue('author', 'author', 'upsert', author, author.updatedAt);
 }
 
 export async function getBooks(): Promise<Book[]> {
   const database = await db();
   const rows = await database.getAllAsync<{ json: string }>('SELECT json FROM books ORDER BY orderIndex ASC');
-  return rows.map(r => JSON.parse(r.json));
+  return Promise.all(rows.map(r => decryptLocalJson<Book>(r.json)));
 }
 
 export async function saveBook(book: Book, queue = true) {
   const database = await db();
-  await database.runAsync('INSERT OR REPLACE INTO books (id,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?)', book.id, JSON.stringify(book), book.status, book.orderIndex, book.updatedAt);
+  await database.runAsync('INSERT OR REPLACE INTO books (id,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?)', book.id, await encryptLocalJson(book), book.status, book.orderIndex, book.updatedAt);
   if (queue) await enqueue('book', book.id, 'upsert', book, book.updatedAt);
 }
 
@@ -108,12 +147,12 @@ export async function getWritings(bookId?: string): Promise<Writing[]> {
   const rows = bookId
     ? await database.getAllAsync<{ json: string }>('SELECT json FROM writings WHERE bookId=? ORDER BY orderIndex ASC', bookId)
     : await database.getAllAsync<{ json: string }>('SELECT json FROM writings ORDER BY bookId, orderIndex ASC');
-  return rows.map(r => JSON.parse(r.json));
+  return Promise.all(rows.map(r => decryptLocalJson<Writing>(r.json)));
 }
 
 export async function saveWriting(writing: Writing, queue = true) {
   const database = await db();
-  await database.runAsync('INSERT OR REPLACE INTO writings (id,bookId,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?,?)', writing.id, writing.bookId, JSON.stringify(writing), writing.status, writing.orderIndex, writing.updatedAt);
+  await database.runAsync('INSERT OR REPLACE INTO writings (id,bookId,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?,?)', writing.id, writing.bookId, await encryptLocalJson(writing), writing.status, writing.orderIndex, writing.updatedAt);
   if (queue) await enqueue('writing', writing.id, 'upsert', writing, writing.updatedAt);
 }
 
@@ -144,7 +183,7 @@ export async function moveWriting(id: string, destinationBookId: string, queue =
 
   await database.withTransactionAsync(async () => {
     for (const writing of updates) {
-      await database.runAsync('INSERT OR REPLACE INTO writings (id,bookId,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?,?)', writing.id, writing.bookId, JSON.stringify(writing), writing.status, writing.orderIndex, writing.updatedAt);
+      await database.runAsync('INSERT OR REPLACE INTO writings (id,bookId,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?,?)', writing.id, writing.bookId, await encryptLocalJson(writing), writing.status, writing.orderIndex, writing.updatedAt);
       if (queue) await enqueue('writing', writing.id, 'upsert', writing, writing.updatedAt);
     }
   });
@@ -159,7 +198,7 @@ export async function reorderWritings(bookId: string, orderedIds: string[], queu
       const w = current.find(x => x.id === orderedIds[i]);
       if (!w) continue;
       const updated = { ...w, orderIndex: i, updatedAt: new Date().toISOString() };
-      await database.runAsync('UPDATE writings SET json=?, orderIndex=?, updatedAt=? WHERE id=?', JSON.stringify(updated), i, updated.updatedAt, updated.id);
+      await database.runAsync('UPDATE writings SET json=?, orderIndex=?, updatedAt=? WHERE id=?', await encryptLocalJson(updated), i, updated.updatedAt, updated.id);
       if (queue) await enqueue('writing', updated.id, 'upsert', updated, updated.updatedAt);
     }
   });
@@ -168,12 +207,12 @@ export async function reorderWritings(bookId: string, orderedIds: string[], queu
 export async function getReaders(): Promise<ReaderAccount[]> {
   const database = await db();
   const rows = await database.getAllAsync<{ json: string }>('SELECT json FROM readers ORDER BY rowid ASC');
-  return rows.map(r => JSON.parse(r.json));
+  return Promise.all(rows.map(r => decryptLocalJson<ReaderAccount>(r.json)));
 }
 
 export async function saveReader(reader: ReaderAccount, queue = true) {
   const database = await db();
-  await database.runAsync('INSERT OR REPLACE INTO readers (id,username,json,status,updatedAt) VALUES (?,?,?,?,?)', reader.id, reader.username, JSON.stringify(reader), reader.status, new Date().toISOString());
+  await database.runAsync('INSERT OR REPLACE INTO readers (id,username,json,status,updatedAt) VALUES (?,?,?,?,?)', reader.id, reader.username, await encryptLocalJson(reader), reader.status, new Date().toISOString());
   if (queue) await enqueue('reader', reader.id, 'upsert', reader, new Date().toISOString());
 }
 
@@ -187,17 +226,18 @@ export async function deleteReader(id: string, queue = true) {
 export async function enqueue(entityType: string, entityId: string, operation: string, payload: unknown, updatedAt: string) {
   const database = await db();
   await database.runAsync('DELETE FROM outbox WHERE entityType=? AND entityId=?', entityType, entityId);
-  await database.runAsync('INSERT INTO outbox (entityType,entityId,operation,payload,updatedAt) VALUES (?,?,?,?,?)', entityType, entityId, operation, JSON.stringify(payload), updatedAt);
+  await database.runAsync('INSERT INTO outbox (entityType,entityId,operation,payload,updatedAt) VALUES (?,?,?,?,?)', entityType, entityId, operation, await encryptLocalJson(payload), updatedAt);
 }
 
 export async function getOutbox() {
   const database = await db();
-  return database.getAllAsync<{ id: number; entityType: string; entityId: string; operation: string; payload: string; updatedAt: string }>('SELECT * FROM outbox ORDER BY id ASC');
+  const rows = await database.getAllAsync<{ id: number; entityType: string; entityId: string; operation: string; payload: string; updatedAt: string }>('SELECT * FROM outbox ORDER BY id ASC');
+  return Promise.all(rows.map(async row => ({ ...row, payload: await decryptLocalValue(row.payload) })));
 }
 
 export async function updateOutboxPayload(id: number, payload: unknown) {
   const database = await db();
-  await database.runAsync('UPDATE outbox SET payload=? WHERE id=?', JSON.stringify(payload), id);
+  await database.runAsync('UPDATE outbox SET payload=? WHERE id=?', await encryptLocalJson(payload), id);
 }
 export async function clearOutbox(ids: number[]) {
   if (!ids.length) return;
@@ -228,9 +268,9 @@ export async function restoreSnapshot(author: AuthorProfile, books: Book[], writ
   const database = await db();
   await database.withTransactionAsync(async () => {
     await database.execAsync('DELETE FROM books; DELETE FROM writings; DELETE FROM readers; DELETE FROM author; DELETE FROM outbox;');
-    await database.runAsync('INSERT INTO author (id,json,updatedAt) VALUES (1,?,?)', JSON.stringify(author), author.updatedAt);
-    for (const book of books) await database.runAsync('INSERT INTO books (id,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?)', book.id, JSON.stringify(book), book.status, book.orderIndex, book.updatedAt);
-    for (const writing of writings) await database.runAsync('INSERT INTO writings (id,bookId,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?,?)', writing.id, writing.bookId, JSON.stringify(writing), writing.status, writing.orderIndex, writing.updatedAt);
-    for (const reader of readers) await database.runAsync('INSERT INTO readers (id,username,json,status,updatedAt) VALUES (?,?,?,?,?)', reader.id, reader.username, JSON.stringify(reader), reader.status, reader.createdAt);
+    await database.runAsync('INSERT INTO author (id,json,updatedAt) VALUES (1,?,?)', await encryptLocalJson(author), author.updatedAt);
+    for (const book of books) await database.runAsync('INSERT INTO books (id,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?)', book.id, await encryptLocalJson(book), book.status, book.orderIndex, book.updatedAt);
+    for (const writing of writings) await database.runAsync('INSERT INTO writings (id,bookId,json,status,orderIndex,updatedAt) VALUES (?,?,?,?,?,?)', writing.id, writing.bookId, await encryptLocalJson(writing), writing.status, writing.orderIndex, writing.updatedAt);
+    for (const reader of readers) await database.runAsync('INSERT INTO readers (id,username,json,status,updatedAt) VALUES (?,?,?,?,?)', reader.id, reader.username, await encryptLocalJson(reader), reader.status, reader.createdAt);
   });
 }
