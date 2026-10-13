@@ -1,4 +1,7 @@
 {
+  "cli": {
+    "appVersionSource": "remote"
+  },
   "build": {
     "preview": {
       "distribution": "internal",
@@ -10,6 +13,10 @@
       }
     },
     "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://diwan-backend-sage.vercel.app"
+      },
       "android": {
         "buildType": "app-bundle"
       }
