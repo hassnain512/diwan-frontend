@@ -1,7 +1,7 @@
 ﻿import { AuthSession, AuthorProfile, BackupData, Book, BookStatus, ReaderAccount, Writing, WritingStatus } from '../types';
 import * as local from './database';
 import { getOrCreateDeviceId } from './device';
-import { hasRemoteApi, isNetworkFailure, remoteApi, setAuthFailureHandler, setRemoteSession, uploadLocalImage, type SyncChange } from './remoteApi';
+import { hasRemoteApi, isNetworkFailure, remoteApi, setAuthFailureHandler, setRemoteSession, setSessionUpdateHandler, uploadLocalImage, type SyncChange } from './remoteApi';
 
 const id = (prefix: string) => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 async function applyChange(change: SyncChange) {
@@ -47,6 +47,7 @@ export const repository = {
   async readerLogout() { if (hasRemoteApi) await remoteApi.logout(); },
   setSession: setRemoteSession,
   onSessionExpired: setAuthFailureHandler,
+  onSessionUpdated: setSessionUpdateHandler,
 
   async getAuthor() {
     if (!hasRemoteApi) return local.getAuthor();

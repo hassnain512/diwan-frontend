@@ -23,10 +23,12 @@ export const isNetworkFailure = (error: unknown) => {
 
 let currentSession: AuthSession | null = null;
 let authFailureHandler: (() => void | Promise<void>) | null = null;
+let sessionUpdateHandler: ((session: AuthSession) => void | Promise<void>) | null = null;
 let refreshPromise: Promise<void> | null = null;
 
 export function setRemoteSession(session?: AuthSession | null) { currentSession = session ?? null; }
 export function setAuthFailureHandler(handler?: (() => void | Promise<void>) | null) { authFailureHandler = handler ?? null; }
+export function setSessionUpdateHandler(handler?: ((session: AuthSession) => void | Promise<void>) | null) { sessionUpdateHandler = handler ?? null; }
 
 const requestId = () => `mobile-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 const delay = (milliseconds: number) => new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -56,6 +58,7 @@ async function refreshAccessToken() {
     if (!response.ok) return expireSession(data.error || data.message || 'Your session has expired. Please sign in again.');
     currentSession = data as AuthSession;
     await saveSession(currentSession);
+    await sessionUpdateHandler?.(currentSession);
   })().finally(() => { refreshPromise = null; });
   return refreshPromise;
 }

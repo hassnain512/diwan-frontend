@@ -40,6 +40,15 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+const NETWORK_STATE_TIMEOUT_MS = 3_000;
+
+async function getInitialNetworkState() {
+  return Promise.race([
+    Network.getNetworkStateAsync(),
+    new Promise<null>(resolve => setTimeout(() => resolve(null), NETWORK_STATE_TIMEOUT_MS))
+  ]);
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [session, setSessionState] = useState<AuthSession | null>(null);
@@ -53,11 +62,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [fontId, setFontId] = useState<NastaliqFontId>('noto');
 
   const loadLocal = useCallback(async (role?: 'admin' | 'reader') => {
-    const [localAuthor, localBooks, localWritings] = await Promise.all([getAuthor().catch(() => null), getBooks(), getWritings()]);
-    setAuthor(localAuthor);
-    setBooks(localBooks);
-    setWritings(localWritings);
-    if (role === 'admin') setReaders(await getReaders());
+    try {
+      const [localAuthor, localBooks, localWritings, localReaders] = await Promise.all([
+        getAuthor(),
+        getBooks(),
+        getWritings(),
+        role === 'admin' ? getReaders() : Promise.resolve([] as ReaderAccount[])
+      ]);
+      setAuthor(localAuthor);
+      setBooks(localBooks);
+      setWritings(localWritings);
+      setReaders(role === 'admin' ? localReaders : []);
+      return true;
+    } catch {
+      // A SecureStore/encryption-key change can make an old SQLite cache unreadable.
+      // The cache is disposable when a remote API is configured, so clear only the
+      // cached library data and keep the persisted login session for recovery.
+      if (hasRemoteApi) {
+        try { await clearRemoteCache(); } catch {}
+      }
+      setAuthor(null);
+      setBooks([]);
+      setWritings([]);
+      setReaders([]);
+      return false;
+    }
   }, []);
 
   const refresh = useCallback(async () => {
@@ -86,27 +115,59 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [session, online, syncing, refresh]);
 
   useEffect(() => {
+    let mounted = true;
+
     repository.onSessionExpired(async () => {
-      await clearRemoteCache();
-      setSessionState(null); setAuthor(null); setBooks([]); setWritings([]); setReaders([]);
+      try { await clearRemoteCache(); } catch {}
+      if (!mounted) return;
+      setSessionState(null);
+      setAuthor(null);
+      setBooks([]);
+      setWritings([]);
+      setReaders([]);
     });
+    repository.onSessionUpdated((next) => {
+      if (mounted) setSessionState(next);
+    });
+
     (async () => {
-      const storageModeChanged = await initializeDatabase();
-      if (storageModeChanged) await clearSession();
-      const [savedSession, theme, font, network] = await Promise.all([getSession(), getReadingTheme(), getFontPreference(), Network.getNetworkStateAsync()]);
-      setSessionState(savedSession);
-      if (savedSession) repository.setSession(savedSession);
-      setReadingThemeState(theme);
-      setFontId(font);
-      setOnline(Boolean(network.isConnected && network.isInternetReachable !== false));
-      if (savedSession) await loadLocal(savedSession.role);
-      setReady(true);
+      try {
+        const storageModeChanged = await initializeDatabase();
+        if (storageModeChanged) await clearSession();
+
+        const [savedSession, theme, font, network] = await Promise.all([
+          getSession(),
+          getReadingTheme(),
+          getFontPreference(),
+          getInitialNetworkState()
+        ]);
+
+        if (!mounted) return;
+        setSessionState(savedSession);
+        repository.setSession(savedSession);
+        setReadingThemeState(theme);
+        setFontId(font);
+        if (network) setOnline(Boolean(network.isConnected && network.isInternetReachable !== false));
+
+        if (savedSession) await loadLocal(savedSession.role);
+      } catch {
+        // Startup must never leave the app permanently on the splash/loading screen.
+        // If initialization fails, preserve recoverable state where possible and
+        // let the normal auth/sync flow recover once the UI is mounted.
+      } finally {
+        if (mounted) setReady(true);
+      }
     })();
 
     const sub = Network.addNetworkStateListener(state => {
-      setOnline(Boolean(state.isConnected && state.isInternetReachable !== false));
+      if (mounted) setOnline(Boolean(state.isConnected && state.isInternetReachable !== false));
     });
-    return () => { repository.onSessionExpired(); sub.remove(); };
+    return () => {
+      mounted = false;
+      repository.onSessionExpired();
+      repository.onSessionUpdated();
+      sub.remove();
+    };
   }, [loadLocal]);
 
   useEffect(() => {
